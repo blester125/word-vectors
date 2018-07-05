@@ -10,5 +10,5 @@ __pycache__/
 *.html
 *.p
 *.npy
-data/*
+benchmark/data/*
 .mypy_cache/

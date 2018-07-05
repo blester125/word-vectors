@@ -4,13 +4,29 @@ import struct
 from enum import Enum
 from typing import Iterable, Tuple
 import numpy as np
-from word_vectors import INT_SIZE, Vocab, Vects
+from word_vectors import (
+    INT_SIZE, FLOAT_SIZE, DENSE_HEADER,
+    Vocab, Vects
+)
 from word_vectors.write import write_dense
 
 Vectors = Enum("Vectors", "GLOVE W2V DENSE")
 
-glove = re.compile(br"^\w+? (-?\d+?\.\d+? )+", re.MULTILINE)
+glove = re.compile(br"^[^ ]+? (-?\d+?\.\d+? )+", re.MULTILINE)
 w2v = re.compile(br"^\d+? \d+?$", re.MULTILINE)
+
+def sniff(file_name: str) -> Vectors:
+    """Figure out what kind of vector file it is."""
+    b = open(file_name, 'rb').read(1024)
+    if w2v.match(b):
+        return Vectors.W2V
+    elif glove.match(b):
+        return Vectors.GLOVE
+    return Vectors.DENSE
+
+def find_max(words: Iterable[str]) -> int:
+    """Get the max length of words (as bytes)."""
+    return max(map(len, map(lambda x: x.encode('utf-8'), words)))
 
 def read(
         file_name: str,
@@ -59,25 +75,23 @@ def read_glove(file_name: str) -> Tuple[Vocab, Vects]:
     vectors = []
     i = 0
     with open(file_name, 'r') as f:
-        for line in f:
-            line = line.rstrip("\n")
-            word, *vector = line.split(" ")
-            if word not in words:
-                words[word] = i
-                vectors.append(np.asarray(vector, dtype=np.float32))
-                i += 1
+        with mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) as m:
+            for line in iter(m.readline, b''):
+                line = line.decode('utf-8')
+                line = line.rstrip("\n")
+                word, *vector = line.split(" ")
+                if word not in words:
+                    words[word] = i
+                    vectors.append(np.asarray(vector, dtype=np.float32))
+                    i += 1
     return words, np.vstack(vectors)
 
-def _find_space(f) -> Tuple[str, int]:
-    """Read forward in a file until finding a space."""
-    word = bytearray()
-    char = f.read(1)
-    while char != b' ':
-        word.extend(char)
-        char = f.read(1)
-    length = len(word)
-    word = word.decode('utf-8')
-    return word.strip(' \n'), length
+def _find_space(m, offset) -> Tuple[str, int, int]:
+    i = offset + 1
+    while m[i:i + 1] != b' ':
+        i += 1
+    word = m[offset:i].decode('utf-8')
+    return word, i - offset, i + 1
 
 def read_w2v(file_name: str, stats: bool=False) -> Tuple[Vocab, Vects]:
     """Read vectors from a word2vec file.
@@ -93,33 +107,23 @@ def read_w2v(file_name: str, stats: bool=False) -> Tuple[Vocab, Vects]:
     vectors = []
     max_len = 0
     with open(file_name, 'rb') as f:
-        header = f.readline()
-        vocab, dim = map(int, header.decode('utf-8').split())
-        size = INT_SIZE * dim
-        for i in range(vocab):
-            word, word_len = _find_space(f)
-            if word_len > max_len:
-                max_len = word_len
-            raw = f.read(size)
-            vector = np.fromstring(raw, dtype=np.float32)
-            words[word] = i
-            vectors.append(vector)
+        with mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) as m:
+            header = m.readline()
+            offset = m.tell()
+            vocab, dim = map(int, header.decode('utf-8').split())
+            size = FLOAT_SIZE * dim
+            for i in range(vocab):
+                word, word_len, offset = _find_space(m, offset)
+                if word_len > max_len:
+                    max_len = word_len
+                raw = m[offset:offset + size]
+                vector = np.fromstring(raw, dtype=np.float32)
+                words[word] = i
+                vectors.append(vector)
+                offset = offset + size
     if stats:
         return words, np.vstack(vectors), max_len
     return words, np.vstack(vectors)
-
-def sniff(file_name: str) -> Vectors:
-    """Figure out what kind of vector file it is."""
-    b = open(file_name, 'rb').read(1024)
-    if w2v.match(b):
-        return Vectors.W2V
-    elif glove.match(b):
-        return Vectors.GLOVE
-    return Vectors.DENSE
-
-def find_max(words: Iterable[str]) -> int:
-    """Get the max length of words (as bytes)."""
-    return max(map(len, map(lambda x: x.encode('utf-8'), words)))
 
 def read_dense(file_name: str, stats: bool=False) -> Tuple[Vocab, Vects]:
     """Read vectors from a dense file.
@@ -141,9 +145,9 @@ def read_dense(file_name: str, stats: bool=False) -> Tuple[Vocab, Vects]:
     vectors = []
     with open(file_name, 'rb') as f:
         with mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) as m:
-            offset = INT_SIZE * 3
+            offset = INT_SIZE * DENSE_HEADER
             vocab, dim, length = struct.unpack('<iii', m[:offset])
-            size = INT_SIZE * dim
+            size = FLOAT_SIZE * dim
             for i in range(vocab):
                 start = offset + i * (length + size)
                 line = m[start:start+length+size]

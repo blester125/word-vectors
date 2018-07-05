@@ -1,7 +1,16 @@
 from pathlib import Path
 import pytest
 import numpy as np
-from word_vectors.read import read, read_glove, read_w2v, read_dense, sniff, Vectors, find_max
+from word_vectors.read import (
+    read,
+    read_glove,
+    read_w2v,
+    read_dense,
+    sniff,
+    Vectors,
+    find_max,
+    glove
+)
 from utils import vocab, vectors, DATA, GLOVE, W2V, DENSE
 
 @pytest.fixture
@@ -26,6 +35,11 @@ def test_read_dense(gold_vocab, gold_vectors):
     w, wv = read_dense(DATA / DENSE)
     assert w == gold_vocab
     np.testing.assert_allclose(wv, gold_vectors)
+
+def test_glove_regex_weird_start():
+    ex = "<user< -0.4532 23.123\n".encode('utf-8')
+    match = glove.search(ex)
+    assert match is not None
 
 def test_sniff_glove():
     x = sniff(DATA / GLOVE)
