@@ -10,7 +10,7 @@ A fast light library for loading word vectors.
 
 A simple vector file that is a plain text file. Each line is a word followed by the vectors with each component (and the word) separated by a space.
 
-This is both slow and space efficient.
+This is both slow and space inefficient.
 
 #### Word2Vec
 
