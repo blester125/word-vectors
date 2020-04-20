@@ -10,23 +10,23 @@ from file_or_name import file_or_name
 from word_vectors import INT_SIZE, FLOAT_SIZE, DENSE_HEADER, Vocab, Vectors
 from word_vectors.write import write_dense
 
-FileTypes = Enum("FileTypes", "GLOVE W2V DENSE")
+FileType = Enum("FileType", "GLOVE W2V DENSE")
 
 glove = re.compile(br"^[^ ]+? (-?\d+?\.\d+? )+", re.MULTILINE)
 w2v = re.compile(br"^\d+? \d+?$", re.MULTILINE)
 
 
 @file_or_name(f="rb")
-def sniff(f: Union[str, TextIO]) -> FileTypes:
+def sniff(f: Union[str, TextIO]) -> FileType:
     """Figure out what kind of vector file it is."""
     b = f.read(1024)
     if f.mode == "r":
-        return FileTypes.GLOVE
+        return FileType.GLOVE
     if w2v.match(b):
-        return FileTypes.W2V
+        return FileType.W2V
     elif glove.match(b):
-        return FileTypes.GLOVE
-    return FileTypes.DENSE
+        return FileType.GLOVE
+    return FileType.DENSE
 
 
 def find_max(words: Iterable[str]) -> int:
@@ -49,11 +49,11 @@ def read(f: Union[str, TextIO], convert: bool = False, replace: bool = False) ->
     wv = None
     len_ = None
     type_ = sniff(f)
-    if type_ is FileTypes.GLOVE:
+    if type_ is FileType.GLOVE:
         w, wv = read_glove(f)
-    elif type_ is FileTypes.W2V:
+    elif type_ is FileType.W2V:
         w, wv, len_ = read_w2v(f, stats=True)
-    elif type_ is FileTypes.DENSE:
+    elif type_ is FileType.DENSE:
         w, wv, len_ = read_dense(f, stats=True)
         convert = False
         replace = False

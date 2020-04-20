@@ -2,7 +2,7 @@ import random
 from pathlib import Path
 import pytest
 import numpy as np
-from word_vectors.read import read, read_glove, read_w2v, read_dense, sniff, FileTypes, find_max, glove
+from word_vectors.read import read, read_glove, read_w2v, read_dense, sniff, FileType, find_max, glove
 from utils import vocab, vectors, DATA, GLOVE, W2V, DENSE
 
 
@@ -82,17 +82,17 @@ def test_glove_regex_weird_start():
 
 def test_sniff_glove():
     x = sniff(DATA / GLOVE)
-    assert x is FileTypes.GLOVE
+    assert x is FileType.GLOVE
 
 
 def test_sniff_w2v():
     x = sniff(DATA / W2V)
-    assert x is FileTypes.W2V
+    assert x is FileType.W2V
 
 
 def test_sniff_dense():
     x = sniff(DATA / DENSE)
-    assert x is FileTypes.DENSE
+    assert x is FileType.DENSE
 
 
 def test_max():
