@@ -1,6 +1,8 @@
 import re
+import os
 import mmap
 import struct
+import pathlib
 from enum import Enum
 from typing import Iterable, Tuple, Union, TextIO
 import numpy as np
@@ -18,6 +20,8 @@ w2v = re.compile(br"^\d+? \d+?$", re.MULTILINE)
 def sniff(f: Union[str, TextIO]) -> FileTypes:
     """Figure out what kind of vector file it is."""
     b = f.read(1024)
+    if f.mode == "r":
+        return FileTypes.GLOVE
     if w2v.match(b):
         return FileTypes.W2V
     elif glove.match(b):
@@ -34,7 +38,7 @@ def read(f: Union[str, TextIO], convert: bool = False, replace: bool = False) ->
     """Read vectors from file.
 
     Args:
-        file_name: The file to read from.
+        f: The file to read from.
         convert: Convert the vectors into the Dense format.
         replace: Replace the vector file with the Dense version.
 
@@ -44,21 +48,25 @@ def read(f: Union[str, TextIO], convert: bool = False, replace: bool = False) ->
     w = None
     wv = None
     len_ = None
-    type_ = sniff(file_name)
+    type_ = sniff(f)
     if type_ is FileTypes.GLOVE:
-        w, wv = read_glove(file_name)
+        w, wv = read_glove(f)
     elif type_ is FileTypes.W2V:
-        w, wv, len_ = read_w2v(file_name, stats=True)
+        w, wv, len_ = read_w2v(f, stats=True)
     elif type_ is FileTypes.DENSE:
-        w, wv, len_ = read_dense(file_name, stats=True)
+        w, wv, len_ = read_dense(f, stats=True)
         convert = False
         replace = False
     if convert:
+        if isinstance(f, (str, pathlib.PurePath)):
+            output = str(f)
+        else:
+            output = f.name
         if not replace:
-            file_name = file_name + ".dense"
+            output = output + ".dense"
         if len_ is None:
             len_ = find_max(w)
-        write_dense(w, wv, len_, file_name)
+        write_dense(output, w, wv, len_)
     return w, wv
 
 

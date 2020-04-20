@@ -1,3 +1,4 @@
+import random
 from pathlib import Path
 import pytest
 import numpy as np
@@ -15,20 +16,59 @@ def gold_vectors():
     return vectors
 
 
+def test_read(gold_vocab, gold_vectors):
+    data = random.choice([GLOVE, W2V, DENSE])
+    w, wv = read(str(DATA / data))
+    assert w == gold_vocab
+    np.testing.assert_allclose(wv, gold_vectors)
+
+
+def test_read_pathlib(gold_vocab, gold_vectors):
+    data = random.choice([GLOVE, W2V, DENSE])
+    w, wv = read(DATA / data)
+    assert w == gold_vocab
+    np.testing.assert_allclose(wv, gold_vectors)
+
+
+def test_read_opened(gold_vocab, gold_vectors):
+    data = random.choice([GLOVE, W2V, DENSE])
+    mode = "r" if data == GLOVE else "rb"
+    w, wv = read(open(DATA / data, mode))
+    assert w == gold_vocab
+    np.testing.assert_allclose(wv, gold_vectors)
+
+
 def test_read_glove(gold_vocab, gold_vectors):
-    w, wv = read_glove(DATA / GLOVE)
+    w, wv = read_glove(str(DATA / GLOVE))
     assert w == gold_vocab
     np.testing.assert_allclose(wv, gold_vectors)
 
 
 def test_read_w2v(gold_vocab, gold_vectors):
-    print(DATA / W2V)
-    w, wv = read_w2v(DATA / W2V)
+    w, wv = read_w2v(str(DATA / W2V))
     assert w == gold_vocab
     np.testing.assert_allclose(wv, gold_vectors)
 
 
 def test_read_dense(gold_vocab, gold_vectors):
+    w, wv = read_dense(str(DATA / DENSE))
+    assert w == gold_vocab
+    np.testing.assert_allclose(wv, gold_vectors)
+
+
+def test_read_glove_pathlib(gold_vocab, gold_vectors):
+    w, wv = read_glove(DATA / GLOVE)
+    assert w == gold_vocab
+    np.testing.assert_allclose(wv, gold_vectors)
+
+
+def test_read_w2v_pathlib(gold_vocab, gold_vectors):
+    w, wv = read_w2v(DATA / W2V)
+    assert w == gold_vocab
+    np.testing.assert_allclose(wv, gold_vectors)
+
+
+def test_read_dense_pathlib(gold_vocab, gold_vectors):
     w, wv = read_dense(DATA / DENSE)
     assert w == gold_vocab
     np.testing.assert_allclose(wv, gold_vectors)
