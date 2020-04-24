@@ -3,7 +3,7 @@ import random
 import string
 import pytest
 from utils import vocab, vectors, DATA, GLOVE, W2V, DENSE
-from word_vectors.write import write_glove, write_w2v, write_dense, _pad, vocab_to_list
+from word_vectors.write import write_glove, write_w2v, write_dense, _pad, to_vocab
 
 
 @pytest.fixture
@@ -23,11 +23,11 @@ def wv():
     return vectors
 
 
-def test_vocab_to_list():
+def test_to_vocab():
     vocab = list("ABCDEFGHIJKLMNOP")
     random.shuffle(vocab)
     d = {k: i for i, k in enumerate(vocab)}
-    assert vocab == vocab_to_list(d)
+    assert to_vocab(vocab) == d
 
 
 def test_save_glove(w, wv, file_name):
