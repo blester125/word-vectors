@@ -2,8 +2,8 @@ import os
 import random
 import string
 import pytest
-from utils import vocab, vectors, DATA, GLOVE, W2V, DENSE
-from word_vectors.write import write_glove, write_w2v, write_dense, _pad, to_vocab
+from utils import vocab, vectors, DATA, GLOVE, W2V, DENSE, W2V_TEXT
+from word_vectors.write import write_glove, write_w2v, write_w2v_text, write_dense, _pad, to_vocab
 
 
 @pytest.fixture
@@ -41,6 +41,13 @@ def test_save_w2v(w, wv, file_name):
     write_w2v(file_name, w, wv)
     gold = open(DATA / W2V, "rb").read()
     mine = open(file_name, "rb").read()
+    assert mine == gold
+
+
+def test_save_w2v_text(w, wv, file_name):
+    write_w2v_text(file_name, w, wv)
+    gold = open(DATA / W2V_TEXT).read()
+    mine = open(file_name).read()
     assert mine == gold
 
 
