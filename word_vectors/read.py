@@ -1,3 +1,5 @@
+"""Read word vectors for a file."""
+
 import re
 import os
 import mmap
@@ -9,27 +11,49 @@ from typing import Tuple, Union, TextIO, BinaryIO
 import numpy as np
 from file_or_name import file_or_name
 from word_vectors import INT_SIZE, FLOAT_SIZE, DENSE_HEADER, Vocab, Vectors
-from word_vectors.utils import _find_space, _find_max
+from word_vectors.utils import find_space, find_max, is_binary, bookmark
 from word_vectors.write import write_dense
 
-FileType = Enum("FileType", "GLOVE W2V DENSE")
 
-glove = re.compile(br"^[^ ]+? (-?\d+?\.\d+? )+", re.MULTILINE)
-w2v = re.compile(br"^\d+? \d+?$", re.MULTILINE)
+FileType = Enum("FileType", "GLOVE W2V_TEXT W2V DENSE")
+
+GLOVE_TEXT = re.compile(r"^[^ ]+? (-?\d+?\.\d+? )+", re.MULTILINE)
+GLOVE_BIN = re.compile(br"^[^ ]+? (-?\d+?\.\d+? )+", re.MULTILINE)
+W2V_TEXT = re.compile(r"^\d+ \d+$", re.MULTILINE)
+W2V_BIN = re.compile(br"^\d+ \d+$", re.MULTILINE)
+
 LOGGER = logging.getLogger("word_vectors")
 
 
 @file_or_name(f="rb")
 def sniff(f: Union[str, TextIO], buf_size: int = 1024) -> FileType:
-    """Figure out what kind of vector file it is."""
-    b = f.read(buf_size)
+    """Figure out what kind of vector file it is.
+
+    Args:
+        f: The file we are sniffing.
+        buf_size: How many bytes to read in when sniffing the file.
+
+    Returns:
+        The file type.
+    """
+    with bookmark(f):
+        b = f.read(buf_size)
     if f.mode == "r":
-        return FileType.GLOVE
-    if w2v.match(b):
-        return FileType.W2V
-    elif glove.match(b):
-        return FileType.GLOVE
-    return FileType.DENSE
+        if GLOVE_TEXT.match(b):
+            return FileType.GLOVE
+        if W2V_TEXT.match(b):
+            return FileType.W2V_TEXT
+    else:
+        if is_binary(f):
+            if W2V_BIN.match(b):
+                return FileType.W2V
+            return FileType.DENSE
+        else:
+            if W2V_BIN.match(b):
+                return FileType.W2V_TEXT
+            if GLOVE_BIN.match(b):
+                return FileType.GLOVE
+    raise ValueError(f"Could not determine file format for {f.name}")
 
 
 def read(f: Union[str, TextIO, BinaryIO], convert: bool = False, replace: bool = False) -> Tuple[Vocab, Vectors]:
@@ -47,6 +71,8 @@ def read(f: Union[str, TextIO, BinaryIO], convert: bool = False, replace: bool =
     LOGGER.info("Sniffed word vector as type %s", type_)
     if type_ is FileType.GLOVE:
         reader = read_glove
+    elif type_ is FileType.W2V_TEXT:
+        reader = read_w2v_text
     elif type_ is FileType.W2V:
         reader = read_w2v
     elif type_ is FileType.DENSE:
@@ -61,7 +87,7 @@ def read(f: Union[str, TextIO, BinaryIO], convert: bool = False, replace: bool =
             output = f.name
         if not replace:
             output = output + ".dense"
-        len_ = _find_max(w.keys())
+        len_ = find_max(w.keys())
         write_dense(output, w, wv, len_)
     return w, wv
 
@@ -91,6 +117,39 @@ def read_glove(f: Union[str, TextIO]) -> Tuple[Vocab, Vectors]:
     return words, np.vstack(vectors)
 
 
+@file_or_name(f="r")
+def read_w2v_text(f: Union[str, TextIO]) -> Tuple[Vocab, Vectors]:
+    """Read vectors from a text based w2v file.
+
+    Note:
+        Because the `mmap` call starts at the beginning of the file and the offset
+        needs to be a multiple of ALLOCATIONGRANULARITY we can't start from the offset
+        that an f.readline() would give us so we can't just advance by one line and then
+        call read_glove so I duplicated the code here :/
+
+    Args:
+        file_name: The file to read from
+
+    Returns:
+        The vocab and vectors.
+    """
+    words = {}
+    vectors = []
+    i = 0
+    with mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) as m:
+        _ = m.readline()
+        for line in iter(m.readline, b""):
+            line = line.decode("utf-8")
+            line = line.rstrip("\n")
+            word, *vector = line.split(" ")
+            if word not in words:
+                words[word] = i
+                vectors.append(np.asarray(vector, dtype=np.float32))
+                i += 1
+    return words, np.vstack(vectors)
+
+
+
 @file_or_name(f="rb")
 def read_w2v(f: Union[str, BinaryIO]) -> Tuple[Vocab, Vectors]:
     """Read vectors from a word2vec file.
@@ -109,7 +168,7 @@ def read_w2v(f: Union[str, BinaryIO]) -> Tuple[Vocab, Vectors]:
         vocab, dim = map(int, header.decode("utf-8").split())
         size = FLOAT_SIZE * dim
         for _ in range(vocab):
-            word, offset = _find_space(m, offset)
+            word, offset = find_space(m, offset)
             if word not in words:
                 words[word] = len(words)
                 raw = m[offset : offset + size]
