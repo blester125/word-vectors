@@ -1,13 +1,32 @@
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
 from typing import Dict, Tuple
-from enum import Enum
+from enum import Enum, auto
 import numpy as np
 
 Vocab = Dict[str, int]
 Vectors = np.ndarray
 
-FileType = Enum("FileType", "GLOVE W2V_TEXT W2V DENSE")
+
+class FileType(Enum):
+    GLOVE = auto()
+    W2V_TEXT = auto()
+    W2V = auto()
+    DENSE = auto()
+
+    @classmethod
+    def from_string(cls, value):
+        value = value.lower()
+        if value == "glove":
+            return cls.GLOVE
+        if value == "w2v_text" or value == "w2v-text":
+            return cls.W2V_TEXT
+        if value == "w2v":
+            return cls.W2V
+        if value == "dense":
+            return cls.DENSE
+        return ValueError(f"Unable to understand file type, got: {value}")
+
 
 INT_SIZE = 4
 FLOAT_SIZE = 4

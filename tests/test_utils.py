@@ -1,8 +1,20 @@
 from io import StringIO
+from word_vectors import FileType
 from word_vectors.utils import find_max, is_binary, find_space, bookmark
-from utils import (
-    DATA, GLOVE, W2V, W2V_TEXT, DENSE, rand_str
-)
+from utils import DATA, GLOVE, W2V, W2V_TEXT, DENSE, rand_str
+
+
+def test_enum_parse():
+    gold_mapping = {
+        "glove": FileType.GLOVE,
+        "GloVe": FileType.GLOVE,
+        "w2v_text": FileType.W2V_TEXT,
+        "w2v-text": FileType.W2V_TEXT,
+        "w2v": FileType.W2V,
+        "dense": FileType.DENSE,
+    }
+    for s, t in gold_mapping.items():
+        assert FileType.from_string(s) is t
 
 
 def test_max():
@@ -22,12 +34,7 @@ def test_max_bytes():
 
 
 def test_is_binary():
-    file_to_gold = {
-        DATA / GLOVE: False,
-        DATA / W2V: True,
-        DATA / W2V_TEXT: False,
-        DATA / DENSE: True
-    }
+    file_to_gold = {DATA / GLOVE: False, DATA / W2V: True, DATA / W2V_TEXT: False, DATA / DENSE: True}
     for file_name, gold in file_to_gold.items():
         assert is_binary(file_name) == gold
 
