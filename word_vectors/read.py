@@ -6,16 +6,13 @@ import mmap
 import struct
 import logging
 import pathlib
-from enum import Enum
 from typing import Tuple, Union, TextIO, BinaryIO
 import numpy as np
 from file_or_name import file_or_name
-from word_vectors import INT_SIZE, FLOAT_SIZE, DENSE_HEADER, Vocab, Vectors
+from word_vectors import INT_SIZE, FLOAT_SIZE, DENSE_HEADER, Vocab, Vectors, FileType
 from word_vectors.utils import find_space, find_max, is_binary, bookmark
 from word_vectors.write import write_dense
 
-
-FileType = Enum("FileType", "GLOVE W2V_TEXT W2V DENSE")
 
 GLOVE_TEXT = re.compile(r"^[^ ]+? (-?\d+?\.\d+? )+", re.MULTILINE)
 GLOVE_BIN = re.compile(br"^[^ ]+? (-?\d+?\.\d+? )+", re.MULTILINE)
@@ -147,7 +144,6 @@ def read_w2v_text(f: Union[str, TextIO]) -> Tuple[Vocab, Vectors]:
                 vectors.append(np.asarray(vector, dtype=np.float32))
                 i += 1
     return words, np.vstack(vectors)
-
 
 
 @file_or_name(f="rb")

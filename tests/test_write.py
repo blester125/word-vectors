@@ -1,9 +1,11 @@
 import os
 import random
 import string
+from unittest.mock import patch
 import pytest
 from utils import vocab, vectors, DATA, GLOVE, W2V, DENSE, W2V_TEXT
-from word_vectors.write import write_glove, write_w2v, write_w2v_text, write_dense, _pad, to_vocab
+from word_vectors import FileType
+from word_vectors.write import write, write_glove, write_w2v, write_w2v_text, write_dense, _pad, to_vocab
 
 
 @pytest.fixture
@@ -76,3 +78,24 @@ def test_pad_longer():
     assert len(res) == len(text)
     assert len(res) > len_
     assert res == text.encode("utf-8")
+
+
+def test_write():
+    with patch("word_vectors.write_module.write_dense") as dense_patch, patch(
+        "word_vectors.write_module.write_w2v"
+    ) as w2v_patch, patch("word_vectors.write_module.write_w2v_text") as w2v_text_patch, patch(
+        "word_vectors.write_module.write_glove"
+    ) as glove_patch:
+        gold_mapping = {
+            FileType.GLOVE: glove_patch,
+            FileType.W2V: w2v_patch,
+            FileType.W2V_TEXT: w2v_text_patch,
+            FileType.DENSE: dense_patch,
+        }
+        file_type = random.choice([FileType.GLOVE, FileType.W2V, FileType.W2V_TEXT, FileType.DENSE])
+        write(None, None, None, file_type, None)
+        for t, p in gold_mapping.items():
+            if file_type is t:
+                p.assert_called_once()
+            else:
+                p.assert_not_called()

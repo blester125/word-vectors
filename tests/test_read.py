@@ -2,7 +2,8 @@ import random
 from pathlib import Path
 import pytest
 import numpy as np
-from word_vectors.read import read, read_glove, read_w2v, read_w2v_text, read_dense, sniff, FileType, GLOVE_BIN
+from word_vectors import FileType
+from word_vectors.read import read, read_glove, read_w2v, read_w2v_text, read_dense, sniff, GLOVE_BIN
 from utils import (
     vocab,
     vectors,
@@ -135,7 +136,7 @@ def test_read_w2v_pathlib(gold_vocab, gold_vectors):
 
 
 def test_read_w2v_opened(gold_vocab, gold_vectors):
-    with open(DATA / W2V, 'rb') as f:
+    with open(DATA / W2V, "rb") as f:
         w, wv = read_w2v(f)
     assert w == gold_vocab
     np.testing.assert_allclose(wv, gold_vectors)
@@ -154,7 +155,7 @@ def test_read_w2v_dupped_pathlib(dupped_vocab, dupped_vectors):
 
 
 def test_read_w2v_dupped_opened(dupped_vocab, dupped_vectors):
-    with open(DATA / W2V_DUPPED, 'rb') as f:
+    with open(DATA / W2V_DUPPED, "rb") as f:
         w, wv = read_w2v(f)
     assert w == dupped_vocab
     np.testing.assert_allclose(wv, dupped_vectors)
@@ -211,7 +212,7 @@ def test_read_dense_pathlib(gold_vocab, gold_vectors):
 
 
 def test_read_dense_opened(gold_vocab, gold_vectors):
-    with open(DATA / DENSE, 'rb') as f:
+    with open(DATA / DENSE, "rb") as f:
         w, wv = read_dense(f)
     assert w == gold_vocab
     np.testing.assert_allclose(wv, gold_vectors)
@@ -230,7 +231,7 @@ def test_read_dense_dupped_pathlib(dupped_vocab, dupped_vectors):
 
 
 def test_read_dense_dupped_opened(dupped_vocab, dupped_vectors):
-    with open(DATA / DENSE_DUPPED, 'rb') as f:
+    with open(DATA / DENSE_DUPPED, "rb") as f:
         w, wv = read_dense(f)
     assert w == dupped_vocab
     np.testing.assert_allclose(wv, dupped_vectors)

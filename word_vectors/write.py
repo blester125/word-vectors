@@ -2,9 +2,9 @@
 
 import struct
 from operator import itemgetter
-from typing import Union, TextIO, BinaryIO, Optional, Iterable
+from typing import Union, IO, TextIO, BinaryIO, Optional, Iterable
 from file_or_name import file_or_name
-from word_vectors import Vocab, Vectors
+from word_vectors import Vocab, Vectors, FileType
 from word_vectors.utils import find_max
 
 
@@ -32,6 +32,25 @@ def to_vocab(words: Iterable[str]) -> Vocab:
         The Vocabulary
     """
     return {w: i for i, w in enumerate(words)}
+
+
+def write(
+    wf: Union[str, IO],
+    vocab: Union[Vocab, Iterable[str]],
+    vectors: Vectors,
+    file_type: FileType,
+    max_len: Optional[int] = None,
+) -> None:
+    if file_type is FileType.GLOVE:
+        write_glove(wf, vocab, vectors)
+    elif file_type is FileType.W2V:
+        write_w2v(wf, vocab, vectors)
+    elif file_type is FileType.W2V_TEXT:
+        write_w2v_text(wf, vocab, vectors)
+    elif file_type is FileType.DENSE:
+        write_dense(wf, vocab, vectors, max_len)
+    else:
+        raise ValueError(f"FileType not understood, got: {file_type}")
 
 
 @file_or_name(wf="wb")
