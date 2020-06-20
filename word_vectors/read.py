@@ -35,9 +35,13 @@ def read(f: Union[str, TextIO, BinaryIO], file_type: Optional[FileType] = None) 
     - :py:func:`~word_vectors.read.read_w2v_text`
     - :py:func:`~word_vectors.read.read_w2v`
     - :py:func:`~word_vectors.read.read_dense`
-    
+
     Check the documentation of a specific reader to see a description of the file
     format as well as common pre-trained vectors that ship with this format.
+
+    Note:
+       In the case of duplicated words in the saved vectors we use the index
+       and associated vector from the first occurrence of the word.
 
     Note:
         Without a specified file type this function uses :py:func:`word_vectors.read.sniff`
@@ -81,6 +85,10 @@ def read_glove(f: Union[str, TextIO]) -> Tuple[Vocab, Vectors]:
 
     .. _GloVe: https://nlp.stanford.edu/projects/glove/
     .. _(Pennington, et. al., 2014): https://www.aclweb.org/anthology/D14-1162/
+
+    Note:
+       In the case of duplicated words in the saved vectors we use the index
+       and associated vector from the first occurrence of the word.
 
     Args:
         f: The file to read from
@@ -126,10 +134,8 @@ def read_w2v_text(f: Union[str, TextIO]) -> Tuple[Vocab, Vectors]:
     .. _(Speer, et. al., 2017): https://aaai.org/ocs/index.php/AAAI/AAAI17/paper/view/14972
 
     Note:
-        Because the ``mmap`` call starts at the beginning of the file and the offset
-        needs to be a multiple of ``ALLOCATIONGRANULARITY`` we can't start from the offset
-        that an ``f.readline()`` would give us. This means we can't just advance by one line
-        and then call read_glove so I duplicated the code here :/
+       In the case of duplicated words in the saved vectors we use the index
+       and associated vector from the first occurrence of the word.
 
     Args:
         f: The file to read from
@@ -142,6 +148,11 @@ def read_w2v_text(f: Union[str, TextIO]) -> Tuple[Vocab, Vectors]:
     words = {}
     vectors = []
     i = 0
+
+    # Because the ``mmap`` call starts at the beginning of the file and the offset
+    # needs to be a multiple of ``ALLOCATIONGRANULARITY`` we can't start from the offset
+    # that an ``f.readline()`` would give us. This means we can't just advance by one line
+    # and then call read_glove so I had to duplicate code here :/
     with mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) as m:
         _ = m.readline()
         for line in iter(m.readline, b""):
@@ -168,6 +179,10 @@ def read_w2v(f: Union[str, BinaryIO]) -> Tuple[Vocab, Vectors]:
     the `word2vec`_ software `(Mikolov, et. al., 2013)`. The most well-known
     pre-trained embeddings distributed in this format are the `GoogleNews`_
     vectors.
+
+    Note:
+       In the case of duplicated words in the saved vectors we use the index
+       and associated vector from the first occurrence of the word.
 
     Note:
         There is no formal mention of the endianess of the representation, the
@@ -231,6 +246,10 @@ def read_dense(f: Union[str, BinaryIO]) -> Tuple[Vocab, Vectors]:
     find the space as in the word2vec binary format. Finding the
     word at index ``i`` can be done with some offset math.
     ``offset for i = header length + i * (max length + vector size)``
+
+    Note:
+       In the case of duplicated words in the saved vectors we use the index
+       and associated vector from the first occurrence of the word.
 
     Args:
         f: The file to read from
