@@ -71,27 +71,18 @@ html_static_path = ["_static"]
 # sphinx doesn't actually use `inspect.signature` or follows the `__wrapped__`
 # attribute. By pretending that we are a context manager we force sphinx to
 # follow the `__wrapped__`. We do this by adding a hook to the
-# `autodoc-before-process-signature` event we first call the normal function
-# (so we don't break anything) and then we fiddle with the `__name__` and
-# `__file__` attributes so that spinx things we are a context manager
+# `autodoc-before-process-signature` event. In this hook we then we fiddle with
+# the `__name__` and `__file__` attributes so that spinx things we are a contexmanager
 # I figured out how to trigger this by debugging into
 # `sphinx.utils.inspect._should_unwrap`. This is an internal function and could
 # change we we should pin our sphinx version.
-from sphinx.ext.autodoc.type_comment import update_annotations_using_type_comments
-from sphinx.ext.napoleon import _process_docstring
 import contextlib
 
 
 def munge_sig(app, obj, bound_method):
-    update_annotations_using_type_comments(app, obj, bound_method)
     obj.__globals__["__name__"] = "contextlib"
     obj.__globals__["__file__"] = contextlib.__file__
 
 
-# def munge_doc(app, what, name, obj, options, lines):
-#     import pdb; pdb.set_trace()
-
-
 def setup(app):
     app.connect("autodoc-before-process-signature", munge_sig)
-    # app.connect('autodoc-process-docstring', munge_doc)
