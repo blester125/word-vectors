@@ -37,6 +37,13 @@ Run the tests with ``pytest``.
 
     pytest
 
+Set up ``pre-commit`` hooks to autoformat your changes with `black <https://black.readthedocs.io/en/stable>`_.
+
+.. code:: bash
+
+    pip install pre-commit
+    pre-commit install
+
 Building the Docs
 -----------------
 

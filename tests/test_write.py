@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 from utils import vocab, vectors, DATA, GLOVE, W2V, DENSE, W2V_TEXT
 from word_vectors import FileType
-from word_vectors.write import write, write_glove, write_w2v, write_w2v_text, write_dense, padded_bytes, to_vocab
+from word_vectors.write import write, write_glove, write_w2v, write_w2v_text, write_dense
 
 
 @pytest.fixture
@@ -23,13 +23,6 @@ def w():
 @pytest.fixture
 def wv():
     return vectors
-
-
-def test_to_vocab():
-    vocab = list("ABCDEFGHIJKLMNOP")
-    random.shuffle(vocab)
-    d = {k: i for i, k in enumerate(vocab)}
-    assert to_vocab(vocab) == d
 
 
 def test_save_glove(w, wv, file_name):
@@ -59,25 +52,6 @@ def test_save_dense(w, wv, file_name):
     gold = open(DATA / DENSE, "rb").read()
     mine = open(file_name, "rb").read()
     assert mine == gold
-
-
-def test_padded_bytes():
-    len_ = random.randint(5, 11)
-    text = "".join(random.choice(string.ascii_lowercase) for _ in range(len_))
-    len_ = random.randint(len(text), len(text) + 10)
-    res = padded_bytes(text, len_)
-    assert len(res) == len_
-    assert res[: len(text)] == text.encode("utf-8")
-
-
-def test_padded_bytes_longer():
-    len_ = random.randint(5, 11)
-    text = "".join(random.choice(string.ascii_lowercase) for _ in range(len_))
-    len_ -= 1
-    res = padded_bytes(text, len_)
-    assert len(res) == len(text)
-    assert len(res) > len_
-    assert res == text.encode("utf-8")
 
 
 def test_write():

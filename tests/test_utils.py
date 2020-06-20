@@ -1,6 +1,8 @@
+import random
+import string
 from io import StringIO
 from word_vectors import FileType
-from word_vectors.utils import find_max, is_binary, find_space, bookmark
+from word_vectors.utils import find_max, is_binary, find_space, bookmark, padded_bytes, to_vocab
 from utils import DATA, GLOVE, W2V, W2V_TEXT, DENSE, rand_str
 
 
@@ -66,3 +68,29 @@ def test_bookmark():
         line = data.readline()
     next_line = data.readline()
     assert next_line == line
+
+
+def test_to_vocab():
+    vocab = list("ABCDEFGHIJKLMNOP")
+    random.shuffle(vocab)
+    d = {k: i for i, k in enumerate(vocab)}
+    assert to_vocab(vocab) == d
+
+
+def test_padded_bytes():
+    len_ = random.randint(5, 11)
+    text = "".join(random.choice(string.ascii_lowercase) for _ in range(len_))
+    len_ = random.randint(len(text), len(text) + 10)
+    res = padded_bytes(text, len_)
+    assert len(res) == len_
+    assert res[: len(text)] == text.encode("utf-8")
+
+
+def test_padded_bytes_longer():
+    len_ = random.randint(5, 11)
+    text = "".join(random.choice(string.ascii_lowercase) for _ in range(len_))
+    len_ -= 1
+    res = padded_bytes(text, len_)
+    assert len(res) == len(text)
+    assert len(res) > len_
+    assert res == text.encode("utf-8")

@@ -5,33 +5,7 @@ from operator import itemgetter
 from typing import Union, IO, TextIO, BinaryIO, Optional, Iterable
 from file_or_name import file_or_name
 from word_vectors import Vocab, Vectors, FileType, DENSE_MAGIC_NUMBER
-from word_vectors.utils import find_max
-
-
-def padded_bytes(word: str, max_len: int) -> bytes:
-    """Pad a word out so the byte representation is max_len.
-
-    Args:
-        word: The word we are padding out and converting to binary
-        max_len: How far to pad the string
-
-    Returns:
-        The word as bytes and extended.
-    """
-    byte_words = word.encode("utf-8")
-    return byte_words + b" " * (max_len - len(byte_words))
-
-
-def to_vocab(words: Iterable[str]) -> Vocab:
-    """Convert a series of words to a vocab mapping strings to ints.
-
-    Args:
-        words: The words in the vocab
-
-    Returns:
-        The Vocabulary
-    """
-    return {w: i for i, w in enumerate(words)}
+from word_vectors.utils import find_max, padded_bytes, to_vocab
 
 
 def write(

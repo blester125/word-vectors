@@ -3,15 +3,16 @@
 from contextlib import contextmanager
 from typing import Tuple, Iterable, Union, BinaryIO, IO
 from file_or_name import file_or_name
+from word_vectors import Vocab
 
 
 # The characters we define as "non-binary" when guessing if a file is binary.
-ASCII_CHARACTERS = b''.join(map(lambda x: bytes((x,)), range(32, 127))) + b'\n\r\t\f\b'
+ASCII_CHARACTERS = b"".join(map(lambda x: bytes((x,)), range(32, 127))) + b"\n\r\t\f\b"
 
 
 def find_space(buf: bytes, offset: int) -> Tuple[str, int]:
     """Find the first space starting from offset and return word that spans the spaces and the new offset.
-    
+
     Args:
         buf: The bytes buffer we are looking for a space in.
         offset: Where in the buffer we start looking.
@@ -47,7 +48,9 @@ def find_max(words: Iterable[str]) -> int:
 
 
 @file_or_name(f="rb")
-def is_binary(f: Union[str, BinaryIO], block_size: int = 512, ratio: float = 0.30, text_characters: bytes = ASCII_CHARACTERS) -> bool:
+def is_binary(
+    f: Union[str, BinaryIO], block_size: int = 512, ratio: float = 0.30, text_characters: bytes = ASCII_CHARACTERS
+) -> bool:
     """Guess if a file is binary or not.
 
     This is based on the implementation from `here`_
@@ -58,6 +61,8 @@ def is_binary(f: Union[str, BinaryIO], block_size: int = 512, ratio: float = 0.3
         f: The file we are testing.
         block_size: The amount of the file to read in for checking.
         ratio: How many non-ascii characters before we assume it is binary.
+        text_characters: Characters that we define as text characters, the ratio of these characters
+            to others is used to determine if the file was binary or not.
 
     Returns:
         True if the file is binary, False otherwise
@@ -67,7 +72,7 @@ def is_binary(f: Union[str, BinaryIO], block_size: int = 512, ratio: float = 0.3
     with bookmark(f):
         block = f.read(block_size)
     # If there are null bytes then it must be binary
-    if b'\x00' in block:
+    if b"\x00" in block:
         return True
     # We are defining an empty file as a text file.
     elif not block:
@@ -106,3 +111,29 @@ def bookmark(f: IO):
     start = f.tell()
     yield
     f.seek(start)
+
+
+def padded_bytes(word: str, max_len: int) -> bytes:
+    """Pad a word out so the byte representation is max_len.
+
+    Args:
+        word: The word we are padding out and converting to binary
+        max_len: How far to pad the string
+
+    Returns:
+        The word as bytes and extended.
+    """
+    byte_words = word.encode("utf-8")
+    return byte_words + b" " * (max_len - len(byte_words))
+
+
+def to_vocab(words: Iterable[str]) -> Vocab:
+    """Convert a series of words to a vocab mapping strings to ints.
+
+    Args:
+        words: The words in the vocab
+
+    Returns:
+        The Vocabulary
+    """
+    return {w: i for i, w in enumerate(words)}

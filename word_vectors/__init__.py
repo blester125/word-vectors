@@ -7,22 +7,30 @@ from enum import Enum
 import numpy as np
 
 
-Vocab = Dict[str, int]  #: The mapping of word to integers we return. The int is used to map from the word into the vectors.
-Vectors = np.ndarray  #: The type of the vectors we return. These are always of rank 2 and have the same ``[vocab size, vector size]``
+#: The mapping of word to integers we return. The int is used to map from the word into the vectors.
+Vocab = Dict[str, int]
+#: The type of the vectors we return. These are always of rank 2 and have the same ``[vocab size, vector size]``
+Vectors = np.ndarray
 
 
 class FileType(Enum):
     """An Enumeration of the Word Vector file types supported."""
 
-    GLOVE = 1  #: The format used by Glove
+    #: The format used by Glove. See :py:func:`~word_vectors.read.read_glove` for a description of file format.
+    GLOVE = 1
+    #: The text format introduced by Word2Vec. See :py:func:`~word_vectors.read.read_w2v_text` for a description of the file format.
     W2V_TEXT = 2
+    #: The binary format used by Word2Vec and pre-trained GoogleNews vectors. See :py:func:`~word_vectors.read.read_w2v` for a description of the file format.
     W2V = 3
+    #: Our new Dense file format. See :py:func:`~word_vectors.read.read_dense` for a description of the file format.
     DENSE = 4
+    #: The file format used to distribute FastText vectors, it is just the word2vec text format. See :py:func:`~word_vectors.read.read_w2v_text` for a description of the file format.
     FASTTEXT = 2
+    #: The file format used to distribute Numberbatch vectors, it is just the word2vec text format. See :py:func:`~word_vectors.read.read_w2v_text` for a description of the file format.
     NUMBERBATCH = 2
 
     @classmethod
-    def from_string(cls, value: str) -> 'FileType':
+    def from_string(cls, value: str) -> "FileType":
         """Convert a string into the Enum value.
 
         Args:
