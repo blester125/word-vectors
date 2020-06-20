@@ -90,14 +90,14 @@ def read(f: Union[str, TextIO, BinaryIO], file_type: Optional[FileType] = None) 
     """
     if file_type is None:
         file_type = sniff(f)
-        LOGGER.info("Sniffed word vector as type %s", type_)
-    if type_ is FileType.GLOVE:
+        LOGGER.info("Sniffed word vector as type %s", file_type)
+    if file_type is FileType.GLOVE:
         reader = read_glove
-    elif type_ is FileType.W2V_TEXT or type_ is FileType.FASTTEXT or type_ is FileType.NUMBERBATCH:
+    elif file_type is FileType.W2V_TEXT or file_type is FileType.FASTTEXT or file_type is FileType.NUMBERBATCH:
         reader = read_w2v_text
-    elif type_ is FileType.W2V:
+    elif file_type is FileType.W2V:
         reader = read_w2v
-    elif type_ is FileType.DENSE:
+    elif file_type is FileType.DENSE:
         reader = read_dense
     return reader(f)
 
