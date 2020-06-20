@@ -1,9 +1,11 @@
 """Utilities for working with word vector I/O."""
 
+import os
+import pathlib
 from contextlib import contextmanager
 from typing import Tuple, Iterable, Union, BinaryIO, IO
 from file_or_name import file_or_name
-from word_vectors import Vocab
+from word_vectors import Vocab, FileType
 
 
 # The characters we define as "non-binary" when guessing if a file is binary.
@@ -137,3 +139,21 @@ def to_vocab(words: Iterable[str]) -> Vocab:
         The Vocabulary
     """
     return {w: i for i, w in enumerate(words)}
+
+
+def create_output_path(path: Union[str, IO, pathlib.PurePath], file_type: FileType) -> str:
+    """Create the output path by stripping the extension and added a new one based on the vector format.
+
+    Args:
+        path: The path to the input file.
+        file_type: The vector format we are converting to.
+
+    Returns:
+        The new output path with an extension determined by the file type.
+    """
+    if isinstance(path, (str, pathlib.PurePath)):
+        path = str(path)
+    else:
+        path = path.name
+    base, _ = os.path.splitext(path)
+    return f"{base}.{file_type}"

@@ -1,4 +1,9 @@
-"""Write Word Vectors to a file."""
+"""Write Word Vectors to a file.
+
+We provide the main :py:func:`~word_vectors.write.write` function that can write
+to various vector serialization formats based on the passed :py:attr:`~word_vecotrs.FileType`.
+There are also several convenience functions for writing specific formats.
+"""
 
 import struct
 from operator import itemgetter

@@ -14,6 +14,10 @@ def test_enum_parse():
         "w2v-text": FileType.W2V_TEXT,
         "w2v": FileType.W2V,
         "dense": FileType.DENSE,
+        "fasttext": FileType.FASTTEXT,
+        "fast-text": FileType.FASTTEXT,
+        "fast_text": FileType.FASTTEXT,
+        "numberbatch": FileType.NUMBERBATCH,
     }
     for s, t in gold_mapping.items():
         assert FileType.from_string(s) is t

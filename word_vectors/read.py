@@ -1,4 +1,11 @@
-"""Read word vectors from a file."""
+"""Read word vectors from a file.
+
+We provide a main :py:func:`~word_vectors.read.read` function for reading vectors
+from a file. The serialization format can be explicitly provided with by passing a
+:py:attr:`~word_vectors.FileType` or automatically inferred using
+:py:func:`~word_vectors.read.sniff`. There are also several provided convenience
+functions for reading from specific formats.
+"""
 
 import re
 import os
@@ -78,10 +85,13 @@ def read(f: Union[str, TextIO, BinaryIO], file_type: Optional[FileType] = None) 
 def read_glove(f: Union[str, TextIO]) -> Tuple[Vocab, Vectors]:
     """Read vectors from a glove file.
 
-    The glove format is a pure text format. Each line has the word followed
-    by a space. Then the rest of the line is the text representation of the
-    float32 elements of the vector separated by a space. The main vectors
-    distributed in this format are the `GloVe`_ vectors `(Pennington, et. al., 2014)`_
+    The GloVe format is a pure text format. Each (word, vector) pair is represented
+    by a single line in the file. The line starts with the word, a space, and then
+    the float32 text representations of the elements in the vector associated with
+    that word. Each of these vector elements are also separated with a space.
+
+    The main vectors distributed in this format are the `GloVe`_ vectors
+    `(Pennington, et. al., 2014)`_
 
     .. _GloVe: https://nlp.stanford.edu/projects/glove/
     .. _(Pennington, et. al., 2014): https://www.aclweb.org/anthology/D14-1162/
@@ -117,17 +127,28 @@ def read_glove(f: Union[str, TextIO]) -> Tuple[Vocab, Vectors]:
 def read_w2v_text(f: Union[str, TextIO]) -> Tuple[Vocab, Vectors]:
     """Read vectors from a text based w2v file.
 
-    The word2vec text format is a pure text format. The first line is two ints
-    representing the number of types in the vocabulary and the size of the
-    word vectors respectively. Each following line has the word followed
-    by a space. Then the rest of the line is the text representations of the
-    float32 elements of the vector each separated by a space. This format was
-    introduced by the `word2vec`_ software in `Mikolov, et. al., 2013`_ but the
-    common embeddings distributed in this format are `FastText`_
-    `(Bojanowski, et. al., 2017)`_ and `NumberBatch`_ `(Speer, et. al., 2017)`_
+    One of two different vector serialization formats introduced in the
+    `word2vec software`_ `(Mikolov, et. al., 2013)`_.
 
-    .. _word2vec: https://code.google.com/archive/p/word2vec/
-    .. _Mikolov, et. al., 2013: https://papers.nips.cc/paper/5021-distributed-representations-of-words-and-phrases-and-their-compositionality
+    The word2vec text format is a pure text format. The first line is two
+    integers, represented as text and separated by a space, that specify the
+    number of types in the vocabulary and the size of the word vectors
+    respectively. Each following line represents a (word, vector) pair. The
+    line stars with the word, a space, and then the float 32 text representations
+    of the elements in the vector associated with that word. Each of these vector
+    elements are also separated with a space.
+
+    One can see that that this is actually the same as the
+    :py:func:`GloVe <word_vectors.read.read_glove>` format except that in GloVe
+    they removed the header line.
+
+    The main embeddings distributed in this format are
+    `FastText`_ `(Bojanowski, et. al., 2017)`_ and
+    `NumberBatch`_ `(Speer, et. al., 2017)`_
+
+
+    .. _word2vec software: https://code.google.com/archive/p/word2vec/
+    .. _(Mikolov, et. al., 2013): https://papers.nips.cc/paper/5021-distributed-representations-of-words-and-phrases-and-their-compositionality
     .. _FastText: https://fasttext.cc/
     .. _(Bojanowski, et. al., 2017): https://www.aclweb.org/anthology/Q17-1010/
     .. _NumberBatch: https://github.com/commonsense/conceptnet-numberbatch
@@ -170,30 +191,37 @@ def read_w2v_text(f: Union[str, TextIO]) -> Tuple[Vocab, Vectors]:
 def read_w2v(f: Union[str, BinaryIO]) -> Tuple[Vocab, Vectors]:
     """Read vectors from a word2vec file.
 
+    One of two different vector serialization formats introduced in the
+    `word2vec software`_ `(Mikolov, et. al., 2013)`_.
+
     The word2vec binary format is a mix of textual an binary representations.
-    The first link is two ints as text representing the number of types in the
-    vocabulary and the size of the word vectors respectively. The
-    (word, vector) pairs then follow. The word is represented as text followed
-    by a space. After the space each element of a vector is represented in binary
-    as float32s. The format is mostly defined by the original implementation in
-    the `word2vec`_ software `(Mikolov, et. al., 2013)`. The most well-known
-    pre-trained embeddings distributed in this format are the `GoogleNews`_
-    vectors.
+    The first line is two integers (as text, separated be a space) representing
+    the number of types in the vocabulary and the size of the word vectors
+    respectively. (word, vector) pairs follow. The word is represented as text
+    and a space. After the space each element of a vector is represented as a
+    binary float32.
+
+    The most well-known pre-trained embeddings distributed in this format are
+    the `GoogleNews`_ vectors.
+
+    Note:
+
+        There is no formal definition of this file format, the only definitive
+        reference on it is the original implementation in the `word2vec software`_
+
+        Due to the lack of a definition (an no special handling of it in the code)
+        there is no explicit statements about the endianness of the binary representations.
+        Most code just uses the ``numpy.from_buffer`` and that seems to work now that
+        most people have little-endian machines. However due to the lack of explicit
+        direction on this encoding I would advise caution when loading vectors that
+        were trained on big-endian hardware.
 
     Note:
        In the case of duplicated words in the saved vectors we use the index
        and associated vector from the first occurrence of the word.
 
-    Note:
-        There is no formal mention of the endianess of the representation, the
-        only specification of the format is the original code used to create the
-        files. I have found that the ``numpy.from_buffer`` works on my little-endian
-        linux machines so I assume the google news pre-trained vectors are little-
-        endian. Vectors trained on big-endian machines might not read correctly
-        on a little-endian computer.
-
-    .. _word2vec: https://code.google.com/archive/p/word2vec/
-    .. _Mikolov, et. al., 2015: https://papers.nips.cc/paper/5021-distributed-representations-of-words-and-phrases-and-their-compositionality
+    .. _word2vec software: https://code.google.com/archive/p/word2vec/
+    .. _(Mikolov, et. al., 2013): https://papers.nips.cc/paper/5021-distributed-representations-of-words-and-phrases-and-their-compositionality
     .. _GoogleNews: https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit
 
     Args:
@@ -226,20 +254,21 @@ def read_w2v(f: Union[str, BinaryIO]) -> Tuple[Vocab, Vectors]:
 def read_dense(f: Union[str, BinaryIO]) -> Tuple[Vocab, Vectors]:
     """Read vectors from a dense file.
 
-    This is a fully binary vector format.
+    This is our fully binary vector format.
 
-    The first line is a header for the dense format is a 4-tuple.
-    The elements of this tuple are: A magic number, the size of
-    the vocabulary, the size of the vectors, and the length of the
-    longest word in the vocabulary (the length when represented as
-    ``utf-8`` bytes rather than as unicode codepoints). These numbers
-    are represented as little-endian unsigned long longs of 8 bytes.
+    The first line is a header for the dense format and it is a
+    4-tuple. The elements of
+    this tuple are: A magic number, the size of the vocabulary, the
+    size of the vectors, and the length of the longest word in the
+    vocabulary (this length when represented as ``utf-8`` bytes
+    rather than as Unicode codepoints). These numbers are represented
+    as little-endian unsigned long longs that have a size of 8 bytes.
 
     Following the header the are (word, vector) pairs. The words are
     stored as ``utf-8`` bytes. The trick is that they are padded out to
     be a consistent length (this length is the length of the longest
     word in the vocabulary). After the word the vector is stored where
-    each element is a little-endian float32.
+    each element is a little-endian float32 (4 bytes).
 
     The consistent word lengths lets us calculate the offset to any
     word quickly without having to iterate over the characters to
@@ -313,12 +342,11 @@ def read_dense_header(buf: bytes) -> Tuple[int, int, int]:
     """Read the header from the dense file.
 
     The header for the dense format is a 4-tuple. The elements of
-    this tuple are: A magic number, the size of the vocabulary,
-    the size of the vectors, and the length of the longest word
-    in the vocabulary (the length when represented as ``utf-8`` bytes
-    rather than as unicode codepoints). These numbers are represented
-    as little-endian unsigned long longs that are represented in 8
-    bytes.
+    this tuple are: A magic number, the size of the vocabulary, the
+    size of the vectors, and the length of the longest word in the
+    vocabulary (this length when represented as ``utf-8`` bytes
+    rather than as Unicode codepoints). These numbers are represented
+    as little-endian unsigned long longs that have a size of 8 bytes.
 
     Note:
         The magic number if used to make sure this is can actual

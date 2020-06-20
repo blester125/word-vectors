@@ -7,9 +7,10 @@ from enum import Enum
 import numpy as np
 
 
-#: The mapping of word to integers we return. The int is used to map from the word into the vectors.
+#: A mapping of word to integer index. This index is used pull the this words
+#: vector from the matrix of word vectors.
 Vocab = Dict[str, int]
-#: The type of the vectors we return. These are always of rank 2 and have the same ``[vocab size, vector size]``
+#: The actual word vectors. These are always of rank 2 and have the shape ``[vocab size, vector size]``
 Vectors = np.ndarray
 
 
@@ -18,22 +19,22 @@ class FileType(Enum):
 
     #: The format used by Glove. See :py:func:`~word_vectors.read.read_glove` for a
     #: description of file format and common pre-trained embeddings that use this format.
-    GLOVE = 1
+    GLOVE = "glove"
     #: The text format introduced by Word2Vec. See :py:func:`~word_vectors.read.read_w2v_text`
     #: for a description of the file format and common pre-trained embeddings that use this format.
-    W2V_TEXT = 2
+    W2V_TEXT = "w2v-text"
     #: The binary format used by Word2Vec and pre-trained GoogleNews vectors. See
     #: :py:func:`~word_vectors.read.read_w2v` for a description of the file format and common
     #: pre-trained embeddings that use this format.
-    W2V = 3
+    W2V = "w2v"
     #: Our new Dense file format. See :py:func:`~word_vectors.read.read_dense` for a description of the file format.
-    DENSE = 4
+    DENSE = "dense"
     #: The file format used to distribute FastText vectors, it is just the word2vec text format.
     #: See :py:func:`~word_vectors.read.read_w2v_text` for a description of the file format.
-    FASTTEXT = 2
+    FASTTEXT = "w2v-text"
     #: The file format used to distribute Numberbatch vectors, it is just the word2vec text format.
     #: See :py:func:`~word_vectors.read.read_w2v_text` for a description of the file format.
-    NUMBERBATCH = 2
+    NUMBERBATCH = "w2v-text"
 
     @classmethod
     def from_string(cls, value: str) -> "FileType":
@@ -63,6 +64,10 @@ class FileType(Enum):
         if value in ("fasttext", "fast-text", "fast_text"):
             return cls.FASTTEXT
         return ValueError(f"Unable to understand file type, got: {value}")
+
+    def __str__(self) -> str:
+        """When calling ``str`` on an enum member output a value suitable for filenames"""
+        return self.value
 
 
 INT_SIZE = 4  #: The size of an int32 in bytes used when reading binary files.
