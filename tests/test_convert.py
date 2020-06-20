@@ -143,17 +143,21 @@ def test_convert_with_output_open():
     output_type = random.choice(list(FileType))
     output = rand_str()
     input_path = DATA / data
-    with open(input_path, "r" if data in (GLOVE, W2V_TEXT) else "rb") as input_path:
-        with open(output, "w" if output_type in (FileType.GLOVE, FileType.W2V_TEXT) else "wb") as output:
-            with patch("word_vectors.convert_module.write") as write_patch:
-                w, wv = read(input_path)
-                convert(input_path, output, output_file_type=output_type)
-                call_file, call_w, call_wv, call_type, call_max = write_patch.call_args_list[0][0]
-                assert call_file == output
-                assert call_w == w
-                assert call_type == output_type
-                np.testing.assert_allclose(call_wv, wv)
-                assert call_max == MAX_VOCAB
+    print(output)
+    try:
+        with open(input_path, "r" if data in (GLOVE, W2V_TEXT) else "rb") as input_path:
+            with open(output, "w" if output_type in (FileType.GLOVE, FileType.W2V_TEXT) else "wb") as output:
+                with patch("word_vectors.convert_module.write") as write_patch:
+                    w, wv = read(input_path)
+                    convert(input_path, output, output_file_type=output_type)
+                    call_file, call_w, call_wv, call_type, call_max = write_patch.call_args_list[0][0]
+                    assert call_file == output
+                    assert call_w == w
+                    assert call_type == output_type
+                    np.testing.assert_allclose(call_wv, wv)
+                    assert call_max == MAX_VOCAB
+    finally:
+        os.remove(output.name)
 
 
 def test_convert_with_input_open():
@@ -162,17 +166,21 @@ def test_convert_with_input_open():
     output_type = random.choice(list(FileType))
     input_path = DATA / data
     output = rand_str()
-    with open(input_path, "r" if data in (GLOVE, W2V_TEXT) else "rb") as input_path:
-        with open(output, "w" if output_type in (FileType.GLOVE, FileType.W2V_TEXT) else "wb") as output:
-            with patch("word_vectors.convert_module.read") as read_patch:
-                with patch("word_vectors.convert_module.write") as write_patch:
-                    w, wv = read(input_path)
-                    read_patch.return_value = (w, wv)
-                    convert(input_path, output, output_file_type=output_type, input_file_type=input_type)
-                    read_patch.assert_called_once_with(input_path, input_type)
-                    call_file, call_w, call_wv, call_type, call_max = write_patch.call_args_list[0][0]
-                    assert call_file == output
-                    assert call_w == w
-                    assert call_type == output_type
-                    np.testing.assert_allclose(call_wv, wv)
-                    assert call_max == MAX_VOCAB
+    print(output)
+    try:
+        with open(input_path, "r" if data in (GLOVE, W2V_TEXT) else "rb") as input_path:
+            with open(output, "w" if output_type in (FileType.GLOVE, FileType.W2V_TEXT) else "wb") as output:
+                with patch("word_vectors.convert_module.read") as read_patch:
+                    with patch("word_vectors.convert_module.write") as write_patch:
+                        w, wv = read(input_path)
+                        read_patch.return_value = (w, wv)
+                        convert(input_path, output, output_file_type=output_type, input_file_type=input_type)
+                        read_patch.assert_called_once_with(input_path, input_type)
+                        call_file, call_w, call_wv, call_type, call_max = write_patch.call_args_list[0][0]
+                        assert call_file == output
+                        assert call_w == w
+                        assert call_type == output_type
+                        np.testing.assert_allclose(call_wv, wv)
+                        assert call_max == MAX_VOCAB
+    finally:
+        os.remove(output.name)

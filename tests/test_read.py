@@ -1,9 +1,20 @@
+import struct
 import random
 from pathlib import Path
 import pytest
 import numpy as np
-from word_vectors import FileType
-from word_vectors.read import read, read_glove, read_w2v, read_w2v_text, read_dense, sniff, GLOVE_BIN
+from word_vectors import FileType, DENSE_MAGIC_NUMBER
+from word_vectors.read import (
+    read,
+    read_glove,
+    read_w2v,
+    read_w2v_text,
+    read_dense,
+    sniff,
+    GLOVE_BIN,
+    read_dense_header,
+    verify_dense,
+)
 from utils import (
     vocab,
     vectors,
@@ -18,6 +29,7 @@ from utils import (
     W2V_DUPPED,
     W2V_TEXT_DUPPED,
     DENSE_DUPPED,
+    rand_str,
 )
 
 
@@ -39,6 +51,75 @@ def dupped_vocab():
 @pytest.fixture
 def dupped_vectors():
     return dupped_vects
+
+
+@pytest.fixture
+def correct_header():
+    vsz, dsz, mxlen = np.random.randint(0, 20, size=(3,))
+    header = struct.pack("<QQQQ", DENSE_MAGIC_NUMBER, vsz, dsz, mxlen)
+    return header, vsz, dsz, mxlen
+
+
+@pytest.fixture
+def wrong_header():
+    vsz, dsz, mxlen = np.random.randint(0, 20, size=(3,))
+    magic = DENSE_MAGIC_NUMBER
+    while magic == DENSE_MAGIC_NUMBER:
+        magic = np.random.randint(10, 100000)
+    header = struct.pack("<QQQQ", magic, vsz, dsz, mxlen)
+    return header, vsz, dsz, mxlen
+
+
+def test_read_dense_header(correct_header):
+    header, gvsz, gdsz, gmxlen = correct_header
+    vsz, dsz, mxlen = read_dense_header(header)
+    assert vsz == gvsz
+    assert dsz == gdsz
+    assert mxlen == gmxlen
+
+
+def test_read_dense_header_errors(wrong_header):
+    header, *_ = wrong_header
+    with pytest.raises(ValueError):
+        read_dense_header(header)
+
+
+def test_verify_dense_correct(correct_header):
+    header, *_ = correct_header
+    assert verify_dense(header)
+
+
+def test_verify_dense_wrong(wrong_header):
+    header, *_ = wrong_header
+    assert not verify_dense(header)
+
+
+def test_read_dense_header_longer(correct_header):
+    header, gvsz, gdsz, gmxlen = correct_header
+    header = header + rand_str().encode("utf-8")
+    vsz, dsz, mxlen = read_dense_header(header)
+    assert vsz == gvsz
+    assert dsz == gdsz
+    assert mxlen == gmxlen
+
+
+def test_read_dense_header_errors_longer(wrong_header):
+    header, *_ = wrong_header
+    header = header + rand_str().encode("utf-8")
+    with pytest.raises(ValueError):
+        read_dense_header(header)
+
+
+def test_verify_dense_correct_longer(correct_header):
+    header, *_ = correct_header
+    header = header + rand_str().encode("utf-8")
+    assert verify_dense(header)
+
+
+def test_verify_dense_wrong_longer(wrong_header):
+    header, *_ = wrong_header
+    header = header + rand_str().encode("utf-8")
+    assert not verify_dense(header)
 
 
 def test_read(gold_vocab, gold_vectors):

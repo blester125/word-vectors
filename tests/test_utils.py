@@ -1,8 +1,10 @@
+import io
 import random
 import string
+import pathlib
 from io import StringIO
 from word_vectors import FileType
-from word_vectors.utils import find_max, is_binary, find_space, bookmark, padded_bytes, to_vocab
+from word_vectors.utils import find_max, is_binary, find_space, bookmark, padded_bytes, to_vocab, create_output_path
 from utils import DATA, GLOVE, W2V, W2V_TEXT, DENSE, rand_str
 
 
@@ -98,3 +100,43 @@ def test_padded_bytes_longer():
     assert len(res) == len(text)
     assert len(res) > len_
     assert res == text.encode("utf-8")
+
+
+def test_create_output_path():
+    ext = rand_str()
+    base = rand_str()
+    file_type = random.choice(list(FileType))
+    path = f"{ext}.{base}"
+    gold = f"{ext}.{file_type}"
+    assert create_output_path(path, file_type) == gold
+
+
+def test_create_output_path_pathlib():
+    ext = rand_str()
+    base = rand_str()
+    file_type = random.choice(list(FileType))
+    path = pathlib.Path(f"{ext}.{base}")
+    gold = f"{ext}.{file_type}"
+    assert create_output_path(path, file_type) == gold
+
+
+def test_create_output_path_open():
+    ext = rand_str()
+    base = rand_str()
+    file_type = random.choice(list(FileType))
+    path = f"{ext}.{base}"
+    path_file = io.StringIO(path)
+    path_file.name = path
+    gold = f"{ext}.{file_type}"
+    assert create_output_path(path_file, file_type) == gold
+
+
+def test_create_output_path_open_bytes():
+    ext = rand_str()
+    base = rand_str()
+    file_type = random.choice(list(FileType))
+    path = f"{ext}.{base}"
+    path_file = io.BytesIO(path.encode("utf-8"))
+    path_file.name = path
+    gold = f"{ext}.{file_type}"
+    assert create_output_path(path_file, file_type) == gold

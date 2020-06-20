@@ -1,6 +1,6 @@
 """Read, Write, and Convert between different word vector serialization formats."""
 
-__version__ = "1.3.0"
+__version__ = "1.4.0"
 
 from typing import Dict, Tuple
 from enum import Enum
