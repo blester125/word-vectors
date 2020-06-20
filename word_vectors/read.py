@@ -35,13 +35,16 @@ def read(f: Union[str, TextIO, BinaryIO], file_type: Optional[FileType] = None) 
     - :py:func:`~word_vectors.read.read_w2v_text`
     - :py:func:`~word_vectors.read.read_w2v`
     - :py:func:`~word_vectors.read.read_dense`
+    
+    Check the documentation of a specific reader to see a description of the file
+    format as well as common pre-trained vectors that ship with this format.
 
     Note:
         Without a specified file type this function uses :py:func:`word_vectors.read.sniff`
         to determine the word vector format and dispatches to the appropriate reader.
 
         I haven't seen a sniffing failure but if your file type can't be determined you
-        can pass the file_type explicitly or call the specific reading function yourself.
+        can pass the ``file_type`` explicitly or call the specific reading function yourself.
 
     Args:
         f: The file to read from.

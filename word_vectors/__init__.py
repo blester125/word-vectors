@@ -16,17 +16,23 @@ Vectors = np.ndarray
 class FileType(Enum):
     """An Enumeration of the Word Vector file types supported."""
 
-    #: The format used by Glove. See :py:func:`~word_vectors.read.read_glove` for a description of file format.
+    #: The format used by Glove. See :py:func:`~word_vectors.read.read_glove` for a
+    #: description of file format and common pre-trained embeddings that use this format.
     GLOVE = 1
-    #: The text format introduced by Word2Vec. See :py:func:`~word_vectors.read.read_w2v_text` for a description of the file format.
+    #: The text format introduced by Word2Vec. See :py:func:`~word_vectors.read.read_w2v_text`
+    #: for a description of the file format and common pre-trained embeddings that use this format.
     W2V_TEXT = 2
-    #: The binary format used by Word2Vec and pre-trained GoogleNews vectors. See :py:func:`~word_vectors.read.read_w2v` for a description of the file format.
+    #: The binary format used by Word2Vec and pre-trained GoogleNews vectors. See
+    #: :py:func:`~word_vectors.read.read_w2v` for a description of the file format and common
+    #: pre-trained embeddings that use this format.
     W2V = 3
     #: Our new Dense file format. See :py:func:`~word_vectors.read.read_dense` for a description of the file format.
     DENSE = 4
-    #: The file format used to distribute FastText vectors, it is just the word2vec text format. See :py:func:`~word_vectors.read.read_w2v_text` for a description of the file format.
+    #: The file format used to distribute FastText vectors, it is just the word2vec text format.
+    #: See :py:func:`~word_vectors.read.read_w2v_text` for a description of the file format.
     FASTTEXT = 2
-    #: The file format used to distribute Numberbatch vectors, it is just the word2vec text format. See :py:func:`~word_vectors.read.read_w2v_text` for a description of the file format.
+    #: The file format used to distribute Numberbatch vectors, it is just the word2vec text format.
+    #: See :py:func:`~word_vectors.read.read_w2v_text` for a description of the file format.
     NUMBERBATCH = 2
 
     @classmethod

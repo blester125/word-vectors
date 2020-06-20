@@ -17,6 +17,14 @@ def write(
 ):
     """Write word vectors to a file.
 
+    This function dispatches to on of the following word vector format writers based
+    on the file of ``file_type``.
+
+    - :py:func:`~word_vectors.write.write_glove`
+    - :py:func:`~word_vectors.write.write_w2v_text`
+    - :py:func:`~word_vectors.write.write_w2v`
+    - :py:func:`~word_vectors.write.write_dense`
+
     Args:
         wf: The file we are writing to.
         vocab: The vocab mapping words -> ints.
@@ -43,6 +51,9 @@ def write(
 def write_glove(wf: Union[str, TextIO], vocab: Union[Vocab, Iterable[str]], vectors: Vectors):
     """Write vectors to a glove file.
 
+    See :py:func:`word_vectors.read.read_glove` for a description of the file format and
+    examples of common pre-trained embeddings that use this format.
+
     Args:
         wf: The file we are writing to
         vocab: The vocab of words -> ints.
@@ -57,6 +68,9 @@ def write_glove(wf: Union[str, TextIO], vocab: Union[Vocab, Iterable[str]], vect
 def write_w2v_text(wf: Union[str, TextIO], vocab: Union[Vocab, Iterable[str]], vectors: Vectors):
     """Write vectors in the word2vec format in a text file.
 
+    See :py:func:`word_vectors.read.read_w2v_text` for a description of the file format and
+    examples of common pre-trained embeddings that use this format.
+
     Args:
         wf: The file we are writing to
         vocab: The vocab of words -> ints
@@ -69,6 +83,9 @@ def write_w2v_text(wf: Union[str, TextIO], vocab: Union[Vocab, Iterable[str]], v
 @file_or_name(wf="wb")
 def write_w2v(wf: Union[str, BinaryIO], vocab: Union[Vocab, Iterable[str]], vectors: Vectors):
     """Write vectors to the word2vec format as a binary file.
+
+    See :py:func:`word_vectors.read.read_w2v` for a description of the file format and
+    examples of common pre-trained embeddings that use this format.
 
     Args:
         wf: The file we are writing to
@@ -86,6 +103,8 @@ def write_dense(
     wf: Union[str, BinaryIO], vocab: Union[Vocab, Iterable[str]], vectors: Vectors, max_len: Optional[int] = None
 ):
     """Write vectors to a dense file.
+
+    See :py:func:`word_vectors.read.read_dense` for a description of the file format.
 
     Args:
         wf: The file we are writing to.
