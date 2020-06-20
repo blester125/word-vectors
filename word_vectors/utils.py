@@ -1,16 +1,30 @@
+"""Utilities for working with word vector I/O."""
+
 from contextlib import contextmanager
 from typing import Tuple, Iterable, Union, BinaryIO, IO
 from file_or_name import file_or_name
 
 
+# The characters we define as "non-binary" when guessing if a file is binary.
 ASCII_CHARACTERS = b''.join(map(lambda x: bytes((x,)), range(32, 127))) + b'\n\r\t\f\b'
 
 
-def find_space(m: bytes, offset: int) -> Tuple[str, int]:
+def find_space(buf: bytes, offset: int) -> Tuple[str, int]:
+    """Find the first space starting from offset and return word that spans the spaces and the new offset.
+    
+    Args:
+        buf: The bytes buffer we are looking for a space in.
+        offset: Where in the buffer we start looking.
+
+    Returns:
+        A (word, offset) tuple where word is the text (decoded from ``utf-8``) starting at
+        the original offset until the first space. Offset is index of the location just
+        after the space we just found.
+    """
     i = offset + 1
-    while m[i : i + 1] != b" ":
+    while buf[i : i + 1] != b" ":
         i += 1
-    word = m[offset:i].decode("utf-8")
+    word = buf[offset:i].decode("utf-8")
     return word, i + 1
 
 
@@ -18,10 +32,10 @@ def find_max(words: Iterable[str]) -> int:
     """Get the max length of words (as bytes).
 
     Note:
-        This finds the length in bytes, this could be different than the max length of the
-        word as returned by `len` because `len` is run on the string objects which might encode
-        to more bytes (in utf-8) for example an emoji is often a single character but as bytes it
-        could be a few.
+        This finds the length in (``utf-8``) bytes, this could be different than the max length
+        of the word as returned by ``len`` because ``len`` is run on the string objects which
+        might encode to more bytes (in ``utf-8``) for example an emoji is often a single character
+        but as bytes it could be a few.
 
     Args:
         words: The series of words.
@@ -34,8 +48,11 @@ def find_max(words: Iterable[str]) -> int:
 
 @file_or_name(f="rb")
 def is_binary(f: Union[str, BinaryIO], block_size: int = 512, ratio: float = 0.30, text_characters: bytes = ASCII_CHARACTERS) -> bool:
-    """Guess if a file is binary or not, based on the implementation from here:
-        https://eli.thegreenplace.net/2011/10/19/perls-guess-if-file-is-text-or-binary-implemented-in-python
+    """Guess if a file is binary or not.
+
+    This is based on the implementation from `here`_
+
+    .. _here: https://eli.thegreenplace.net/2011/10/19/perls-guess-if-file-is-text-or-binary-implemented-in-python
 
     Args:
         f: The file we are testing.
@@ -63,7 +80,29 @@ def is_binary(f: Union[str, BinaryIO], block_size: int = 512, ratio: float = 0.3
 
 
 @contextmanager
-def bookmark(f: IO) -> None:
+def bookmark(f: IO):
+    """Bookmark where we are in a file so we can return.
+
+    This is a context manager that lets us save our spot in an open file,
+    to some operations on that file, and then return to the original stop.
+
+    This is very useful for things like sniffing a file. If the file is
+    already open and you read in some bytes to estimate the format you need
+    to remember to reset to the start or else you will get wrong results.
+    This context manager automates this. ::
+
+        f.tell()
+        >>> 120
+        with bookmark(f):
+            _ = f.read(1024)
+            print(f.tell())
+        >>> 1144
+        f.tell()
+        >>> 120
+
+    Args:
+        f: The file we are bookmarking.
+    """
     start = f.tell()
     yield
     f.seek(start)

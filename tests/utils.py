@@ -22,7 +22,7 @@ W2V_DUPPED = "dupped.w2v"
 DENSE_DUPPED = "dupped.dense"
 W2V_TEXT_DUPPED = "dupped.w2v.txt"
 dupped_vocab = {"a": 0, "b": 1, "c": 2}
-dupped_vectors = np.arange(4 * 20).reshape(4, -1)[[0, 1, 3]]
+dupped_vectors = np.arange(4 * 20, dtype=np.float32).reshape(4, -1)[[0, 1, 3]]
 
 
 def rand_str(length: int = None, min_: int = 3, max_: int = 5):

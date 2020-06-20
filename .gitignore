@@ -12,3 +12,5 @@ __pycache__/
 *.npy
 */data/*
 .mypy_cache/
+docs/build/*
+.condaauto
