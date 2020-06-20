@@ -4,10 +4,16 @@ Word Vectors
 
 .. image:: https://img.shields.io/pypi/v/word-vectors
     :target: https://pypi.org/project/word-vectors/
+    :alt: PyPI Version
 .. image:: https://github.com/blester125/word-vectors/workflows/Unit%20Test/badge.svg
     :target: https://github.com/blester125/word-vectors/actions
+    :alt: Actions Status
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
+    :alt: Code style: black
+.. image:: https://readthedocs.org/projects/word-vectors/badge/?version=latest
+    :target: https://word-vectors.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
 
 A fast light-weight library for loading (and saving) word vectors.
 
