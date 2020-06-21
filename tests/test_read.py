@@ -1,11 +1,15 @@
 import struct
 import random
+from copy import deepcopy
+from itertools import chain
+from operator import itemgetter
 from pathlib import Path
 import pytest
 import numpy as np
 from word_vectors import FileType, DENSE_MAGIC_NUMBER
 from word_vectors.read import (
     read,
+    read_with_vocab,
     read_glove,
     read_w2v,
     read_w2v_text,
@@ -70,6 +74,46 @@ def wrong_header():
     return header, vsz, dsz, mxlen
 
 
+def sample(vocab, vectors, p):
+    def inner_sample(vocab, vectors, p):
+        new_vocab = {}
+        new_vectors = []
+        for word, idx in vocab.items():
+            if np.random.rand() < p:
+                new_vocab[word] = len(new_vocab)
+                new_vectors.append(vectors[idx])
+        return new_vocab, new_vectors
+
+    new_vectors = []
+    while not new_vectors:
+        new_vocab, new_vectors = inner_sample(vocab, vectors, p)
+
+    return new_vocab, np.vstack(new_vectors)
+
+
+def split(vocab, vectors, p):
+    def inner_split(vocab, vectors, p):
+        new_vocab = {}
+        new_vectors = []
+        extra_vocab = {}
+        extra_vectors = []
+        for word, idx in vocab.items():
+            if np.random.rand() < p:
+                new_vocab[word] = len(new_vocab)
+                new_vectors.append(vectors[idx])
+            else:
+                extra_vocab[word] = len(extra_vocab)
+                extra_vectors.append(vectors[idx])
+        return new_vocab, new_vectors, extra_vocab, extra_vectors
+
+    new_vectors = []
+    extra_vectors = []
+    while not (new_vectors and extra_vectors):
+        new_vocab, new_vectors, extra_vocab, extra_vectors = inner_split(vocab, vectors, p)
+
+    return new_vocab, np.vstack(new_vectors), extra_vocab, np.vstack(extra_vectors)
+
+
 def test_read_dense_header(correct_header):
     header, gvsz, gdsz, gmxlen = correct_header
     vsz, dsz, mxlen = read_dense_header(header)
@@ -129,10 +173,56 @@ def test_read(gold_vocab, gold_vectors):
     np.testing.assert_allclose(wv, gold_vectors)
 
 
+def test_read_with_vocab(gold_vocab, gold_vectors):
+    gold_vocab, gold_vectors = sample(gold_vocab, gold_vectors, 0.5)
+    data = random.choice([GLOVE, W2V, DENSE, W2V_TEXT])
+    v, wv = read_with_vocab(str(DATA / data), gold_vocab)
+    assert v == gold_vocab
+    np.testing.assert_allclose(wv, gold_vectors)
+
+
+def test_read_with_vocab_extra(gold_vocab, gold_vectors):
+    user_vocab, user_vectors, extra_vocab, extra_vectors = split(gold_vocab, gold_vectors, 0.5)
+    gold_vocab = {}
+    gold_vectors = np.concatenate([user_vectors, extra_vectors], axis=0)
+    for idx, (word, _) in enumerate(
+        chain(sorted(user_vocab.items(), key=itemgetter(1)), sorted(extra_vocab.items(), key=itemgetter(1)))
+    ):
+        gold_vocab[word] = idx
+
+    data = random.choice([GLOVE, W2V, DENSE, W2V_TEXT])
+    v, wv = read_with_vocab(str(DATA / data), user_vocab, keep_extra=True)
+    assert v == gold_vocab
+    np.testing.assert_allclose(wv, gold_vectors)
+
+
 def test_read_pathlib(gold_vocab, gold_vectors):
     data = random.choice([GLOVE, W2V, DENSE, W2V_TEXT])
-    w, wv = read(DATA / data)
-    assert w == gold_vocab
+    v, wv = read(DATA / data)
+    assert v == gold_vocab
+    np.testing.assert_allclose(wv, gold_vectors)
+
+
+def test_read_with_vocab_pathlib(gold_vocab, gold_vectors):
+    gold_vocab, gold_vectors = sample(gold_vocab, gold_vectors, 0.5)
+    data = random.choice([GLOVE, W2V, DENSE, W2V_TEXT])
+    v, wv = read_with_vocab(DATA / data, gold_vocab)
+    assert v == gold_vocab
+    np.testing.assert_allclose(wv, gold_vectors)
+
+
+def test_read_with_vocab_extra_pathlib(gold_vocab, gold_vectors):
+    user_vocab, user_vectors, extra_vocab, extra_vectors = split(gold_vocab, gold_vectors, 0.5)
+    gold_vocab = {}
+    gold_vectors = np.concatenate([user_vectors, extra_vectors], axis=0)
+    for idx, (word, _) in enumerate(
+        chain(sorted(user_vocab.items(), key=itemgetter(1)), sorted(extra_vocab.items(), key=itemgetter(1)))
+    ):
+        gold_vocab[word] = idx
+
+    data = random.choice([GLOVE, W2V, DENSE, W2V_TEXT])
+    v, wv = read_with_vocab(DATA / data, user_vocab, keep_extra=True)
+    assert v == gold_vocab
     np.testing.assert_allclose(wv, gold_vectors)
 
 
@@ -144,11 +234,59 @@ def test_read_opened(gold_vocab, gold_vectors):
     np.testing.assert_allclose(wv, gold_vectors)
 
 
+def test_read_with_vocab_opened(gold_vocab, gold_vectors):
+    gold_vocab, gold_vectors = sample(gold_vocab, gold_vectors, 0.5)
+    data = random.choice([GLOVE, W2V, DENSE, W2V_TEXT])
+    mode = "r" if data in (GLOVE, W2V_TEXT) else "rb"
+    v, wv = read_with_vocab(open(DATA / data, mode), gold_vocab)
+    assert v == gold_vocab
+    np.testing.assert_allclose(wv, gold_vectors)
+
+
+def test_read_with_vocab_extra_opened(gold_vocab, gold_vectors):
+    user_vocab, user_vectors, extra_vocab, extra_vectors = split(gold_vocab, gold_vectors, 0.5)
+    gold_vocab = {}
+    gold_vectors = np.concatenate([user_vectors, extra_vectors], axis=0)
+    for idx, (word, _) in enumerate(
+        chain(sorted(user_vocab.items(), key=itemgetter(1)), sorted(extra_vocab.items(), key=itemgetter(1)))
+    ):
+        gold_vocab[word] = idx
+
+    data = random.choice([GLOVE, W2V, DENSE, W2V_TEXT])
+    mode = "r" if data in (GLOVE, W2V_TEXT) else "rb"
+    v, wv = read_with_vocab(open(DATA / data, mode), user_vocab, keep_extra=True)
+    assert v == gold_vocab
+    np.testing.assert_allclose(wv, gold_vectors)
+
+
 def test_read_dupped(dupped_vocab, dupped_vectors):
     data = random.choice([GLOVE_DUPPED, W2V_DUPPED, DENSE_DUPPED])
     w, wv = read(str(DATA / data))
     assert w == dupped_vocab
     np.testing.assert_allclose(wv, dupped_vectors)
+
+
+def test_read_dupped_with_vocab(dupped_vocab, dupped_vectors):
+    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, DENSE_DUPPED])
+    gold_vocab, gold_vectors = sample(dupped_vocab, dupped_vectors, 0.5)
+    w, wv = read_with_vocab(str(DATA / data), gold_vocab)
+    assert w == gold_vocab
+    np.testing.assert_allclose(wv, gold_vectors)
+
+
+def test_read_dupped_with_vocab_with_extra(dupped_vocab, dupped_vectors):
+    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, DENSE_DUPPED])
+    user_vocab, user_vectors, extra_vocab, extra_vectors = split(dupped_vocab, dupped_vectors, 0.5)
+    gold_vocab = {}
+    gold_vectors = np.concatenate([user_vectors, extra_vectors], axis=0)
+    for idx, (word, _) in enumerate(
+        chain(sorted(user_vocab.items(), key=itemgetter(1)), sorted(extra_vocab.items(), key=itemgetter(1)))
+    ):
+        gold_vocab[word] = idx
+
+    w, wv = read_with_vocab(str(DATA / data), user_vocab, keep_extra=True)
+    assert w == gold_vocab
+    np.testing.assert_allclose(wv, gold_vectors)
 
 
 def test_read_dupped_pathlib(dupped_vocab, dupped_vectors):
@@ -158,12 +296,60 @@ def test_read_dupped_pathlib(dupped_vocab, dupped_vectors):
     np.testing.assert_allclose(wv, dupped_vectors)
 
 
+def test_read_dupped_with_vocab_pathlib(dupped_vocab, dupped_vectors):
+    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, DENSE_DUPPED])
+    gold_vocab, gold_vectors = sample(dupped_vocab, dupped_vectors, 0.5)
+    w, wv = read_with_vocab(DATA / data, gold_vocab)
+    assert w == gold_vocab
+    np.testing.assert_allclose(wv, gold_vectors)
+
+
+def test_read_dupped_with_vocab_with_extra_pathlib(dupped_vocab, dupped_vectors):
+    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, DENSE_DUPPED])
+    user_vocab, user_vectors, extra_vocab, extra_vectors = split(dupped_vocab, dupped_vectors, 0.5)
+    gold_vocab = {}
+    gold_vectors = np.concatenate([user_vectors, extra_vectors], axis=0)
+    for idx, (word, _) in enumerate(
+        chain(sorted(user_vocab.items(), key=itemgetter(1)), sorted(extra_vocab.items(), key=itemgetter(1)))
+    ):
+        gold_vocab[word] = idx
+
+    w, wv = read_with_vocab(DATA / data, user_vocab, keep_extra=True)
+    assert w == gold_vocab
+    np.testing.assert_allclose(wv, gold_vectors)
+
+
 def test_read_dupped_opened(dupped_vocab, dupped_vectors):
     data = random.choice([GLOVE_DUPPED, W2V_DUPPED, DENSE_DUPPED])
     mode = "r" if data == GLOVE_DUPPED else "rb"
     w, wv = read(open(DATA / data, mode))
     assert w == dupped_vocab
     np.testing.assert_allclose(wv, dupped_vectors)
+
+
+def test_read_dupped_with_vocab_opened(dupped_vocab, dupped_vectors):
+    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, DENSE_DUPPED])
+    mode = "r" if data == GLOVE_DUPPED else "rb"
+    gold_vocab, gold_vectors = sample(dupped_vocab, dupped_vectors, 0.5)
+    w, wv = read_with_vocab(open(DATA / data, mode), gold_vocab)
+    assert w == gold_vocab
+    np.testing.assert_allclose(wv, gold_vectors)
+
+
+def test_read_dupped_with_vocab_with_extra_opened(dupped_vocab, dupped_vectors):
+    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, DENSE_DUPPED])
+    mode = "r" if data == GLOVE_DUPPED else "rb"
+    user_vocab, user_vectors, extra_vocab, extra_vectors = split(dupped_vocab, dupped_vectors, 0.5)
+    gold_vocab = {}
+    gold_vectors = np.concatenate([user_vectors, extra_vectors], axis=0)
+    for idx, (word, _) in enumerate(
+        chain(sorted(user_vocab.items(), key=itemgetter(1)), sorted(extra_vocab.items(), key=itemgetter(1)))
+    ):
+        gold_vocab[word] = idx
+
+    w, wv = read_with_vocab(open(DATA / data, mode), user_vocab, keep_extra=True)
+    assert w == gold_vocab
+    np.testing.assert_allclose(wv, gold_vectors)
 
 
 def test_read_glove(gold_vocab, gold_vectors):

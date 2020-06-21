@@ -80,6 +80,32 @@ DENSE_MAGIC_NUMBER = 2283  #: A magic number used to identify a Dense format fil
 import word_vectors.read as read_module
 import word_vectors.write as write_module
 import word_vectors.convert as convert_module
-from word_vectors.read import read, read_w2v, read_w2v_text, read_glove, read_dense, verify_dense
-from word_vectors.convert import convert
+from word_vectors.read import (
+    read,
+    read_with_vocab,
+    read_w2v,
+    read_w2v_with_vocab,
+    read_w2v_text,
+    read_w2v_with_vocab,
+    read_glove,
+    read_glove_with_vocab,
+    read_dense,
+    read_dense_with_vocab,
+    verify_dense,
+)
+from word_vectors.convert import (
+    convert,
+    w2v_to_dense,
+    w2v_to_glove,
+    w2v_to_w2v_text,
+    glove_to_w2v,
+    glove_to_w2v_text,
+    glove_to_dense,
+    w2v_text_to_w2v,
+    w2v_text_to_glove,
+    w2v_text_to_dense,
+    dense_to_glove,
+    dense_to_w2v,
+    dense_to_w2v_text,
+)
 from word_vectors.write import write, write_w2v, write_w2v_text, write_glove, write_dense

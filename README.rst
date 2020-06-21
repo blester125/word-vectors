@@ -294,6 +294,54 @@ API is very simply just pass in the file name.
     ... v, wv = read_dense("/path/to/dense-vector-file")
 
 
+You can also use the ``_with_vocab`` version of all the reader function to only read a subsection of the
+vocabulary. Below we can see an example. First we read the full vocabulary from the file. We can see that is
+has the string representations of numbers from zero for fourteen. We can see the vectors for several tokens.
+Then we create a user vocabulary that only has the even numbers, and we re-read the vectors with this vocab.
+We see that we have now only read in a subset of the word and that our vocab is in the same order that we
+passed in. We can also see the vectors for a word haven't changed. Finally we re-read the vectors again but
+this time we ask for it to keep the vectors in the pre-train vocabulary that are not present in our vocab using
+``keep_extra=True``. We can see the indices from our user vocabulary have not changed but we get the full
+vocabulary back with the extra words appearing at the end.
+
+.. code:: python
+
+    >>> from word_vectors import read, read_with_vocab
+    >>> v, wv = read("dense.bin")
+    >>> v
+    {'0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, '11': 11, '12': 12, '13': 13, '14': 14}
+    >>> wv[v["4"]]
+    array([4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4.,
+           4., 4., 4.], dtype=float32)
+    >>> wv[v["13"]]
+    array([13., 13., 13., 13., 13., 13., 13., 13., 13., 13., 13., 13., 13.,
+           13., 13., 13., 13., 13., 13., 13.], dtype=float32)
+    >>> wv.shape
+    (15, 20)
+    >>> user_vocab = {k: i for i, k in enumerate(k for k, x in v.items() if x % 2 == 0)}
+    >>> user_vocab
+    {'0': 0, '2': 1, '4': 2, '6': 3, '8': 4, '10': 5, '12': 6, '14': 7}
+    >>> v, wv = read_with_vocab("dense.bin", user_vocab)
+    >>> v
+    {'0': 0, '2': 1, '4': 2, '6': 3, '8': 4, '10': 5, '12': 6, '14': 7}
+    >>> wv[v["4"]]
+    array([4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4.,
+           4., 4., 4.], dtype=float32)
+    >>> wv.shape
+    (8, 20)
+    >>> v, wv = read_with_vocab("dense.bin", user_vocab, keep_extra=True)
+    >>> v
+    {'0': 0, '2': 1, '4': 2, '6': 3, '8': 4, '10': 5, '12': 6, '14': 7, '1': 8, '3': 9, '5': 10, '7': 11, '9': 12, '11': 13, '13': 14}
+    >>> wv[v["4"]]
+    array([4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4.,
+           4., 4., 4.], dtype=float32)
+    >>> wv[v["13"]]
+    array([13., 13., 13., 13., 13., 13., 13., 13., 13., 13., 13., 13., 13.,
+           13., 13., 13., 13., 13., 13., 13.], dtype=float32)
+    >>> wv.shape
+    (15, 20)
+
+
 Writing
 -------
 

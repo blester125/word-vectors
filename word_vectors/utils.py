@@ -3,7 +3,8 @@
 import os
 import pathlib
 from contextlib import contextmanager
-from typing import Tuple, Iterable, Union, BinaryIO, IO
+from typing import Tuple, Iterable, Union, BinaryIO, IO, Callable
+import numpy as np
 from file_or_name import file_or_name
 from word_vectors import Vocab, FileType
 
@@ -157,3 +158,19 @@ def create_output_path(path: Union[str, IO, pathlib.PurePath], file_type: FileTy
         path = path.name
     base, _ = os.path.splitext(path)
     return f"{base}.{file_type}"
+
+
+def uniform_initializer(unif: float) -> Callable[[int], np.ndarray]:
+    """Create a vector initialization function that takes a vector size as input.
+
+    Args:
+        unif: The bounds that the new vector will be initialized within
+
+    Returns:
+        A function that returns a uniformly random vector between ``-unif`` and ``unif``,
+    """
+
+    def _unif_initializer(vector_size: int) -> np.ndarray:
+        return np.random.rand(-unif, unif, size=(vector_size,))
+
+    return _unif_initializer
