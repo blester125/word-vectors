@@ -134,6 +134,20 @@ def read_w2v_lines(f: Union[str, BinaryIO]) -> Iterator[Tuple[str, np.ndarray]]:
             offset = offset + size
 
 
+@file_or_name(f="rb")
+def read_dense_lines(f: Union[str, BinaryIO]) -> Iterator[Tuple[str, np.ndarray]]:
+    with mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) as m:
+        offset = LONG_SIZE * DENSE_HEADER
+        vocab, dim, length = read_dense_header(m[:offset])
+        size = FLOAT_SIZE * dim
+        for i in range(vocab):
+            start = offset + i * (length + size)
+            line = m[start : start + length + size]
+            word = line[:length].decode("utf-8").rstrip(" ")
+            vector = np.frombuffer(line[length:], dtype=np.float32)
+            yield word, vector
+
+
 @file_or_name
 def read_glove(f: Union[str, TextIO]) -> Tuple[Vocab, Vectors]:
     """Read vectors from a glove file.
@@ -295,20 +309,6 @@ def read_dense(f: Union[str, BinaryIO]) -> Tuple[Vocab, Vectors]:
         The vocab and vectors.
     """
     return _read(f, read_dense_lines)
-
-
-@file_or_name(f="rb")
-def read_dense_lines(f: Union[str, BinaryIO]) -> Iterator[Tuple[str, np.ndarray]]:
-    with mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) as m:
-        offset = LONG_SIZE * DENSE_HEADER
-        vocab, dim, length = read_dense_header(m[:offset])
-        size = FLOAT_SIZE * dim
-        for i in range(vocab):
-            start = offset + i * (length + size)
-            line = m[start : start + length + size]
-            word = line[:length].decode("utf-8").rstrip(" ")
-            vector = np.frombuffer(line[length:], dtype=np.float32)
-            yield word, vector
 
 
 @file_or_name(f="rb")
