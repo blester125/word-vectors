@@ -162,7 +162,8 @@ word at index ``i`` can be done with some offset math.
     header is not text so a simple ``head -n 1 embedding-file``
     will **NOT** work. Instead you can use
     ``od -l --endian=little -N 32 embedding-file`` and you should
-    see the magic number, the vocabulary size, and the vector size.
+    see the magic number, the vocabulary size, the vector size, and
+    the max length of the tokens (as ``utf-8`` bytes).
 
 `A note on the Senna format`: There is an older format of embeddings called `Senna embeddings`_ `(Collobert, et. al.,
 2011)`_. The format actually uses two files. There is a vocabulary file where each line has a single word and an
