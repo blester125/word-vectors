@@ -14,14 +14,6 @@ def get_version(file_name: str, version_name: str = "__version__") -> Optional[s
     raise ValueError(f"Couldn't find assignment to variable {version_name} in file {file_name}")
 
 
-def patch_readme(file_name):
-    with open(file_name) as f:
-        data = f.read()
-        data = re.sub(r":py:(?:func|attr):`~?(.*?)`", r"``\1``", data)
-    print(data)
-    return data
-
-
 class About(object):
     NAME = "word-vectors"
     VERSION = get_version("word_vectors/__init__.py")
@@ -40,7 +32,7 @@ setup(
     name=About.NAME,
     version=About.VERSION,
     description=About.DESCRIPTION,
-    long_description=patch_readme("README.rst"),
+    long_description=open("README.rst").read(),
     long_description_content_type="text/x-rst",
     author=About.AUTHOR,
     author_email=About.EMAIL,

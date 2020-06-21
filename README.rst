@@ -276,8 +276,8 @@ perfect for downstream machine leaning applications like the input to neural net
 Reading
 -------
 
-Reading is most often done with the :py:func:`word_vectors.read.read` function. We can use the
-:py:attr:`word_vectors.FileType` argument to specify a specific format to read the file as or we can let the code
+Reading is most often done with the ``word_vectors.read.read`` function. We can use the
+``word_vectors.FileType`` argument to specify a specific format to read the file as or we can let the code
 infer the format for itself (you can also use one of the format specific readers to read a certain file format. The read
 API is very simply just pass in the file name.
 
@@ -297,8 +297,8 @@ API is very simply just pass in the file name.
 Writing
 -------
 
-Writing similarly has a main :py:func:`word_vectors.write.write` function that dispatches on the
-:py:attr:`word_vectors.FileType` argument and there are format specific writers if you want to use those instead.
+Writing similarly has a main ``word_vectors.write.write`` function that dispatches on the
+``word_vectors.FileType`` argument and there are format specific writers if you want to use those instead.
 
 .. code:: python
 
@@ -313,8 +313,8 @@ Writing similarly has a main :py:func:`word_vectors.write.write` function that d
 Converting
 ----------
 
-Conversions also have a general function (:py:func:`word_vectors.convert.convert`) dispatching on
-:py:attr:`word_vectors.FileType` and specific functions for converting between certain pairs.
+Conversions also have a general function (``word_vectors.convert.convert``) dispatching on
+``word_vectors.FileType`` and specific functions for converting between certain pairs.
 
 .. code:: python
 
