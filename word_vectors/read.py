@@ -13,7 +13,7 @@ import mmap
 import struct
 import logging
 import pathlib
-from typing import Tuple, Union, TextIO, BinaryIO, Optional
+from typing import Tuple, Union, TextIO, BinaryIO, Optional, Iterator
 import numpy as np
 from file_or_name import file_or_name
 from word_vectors import LONG_SIZE, FLOAT_SIZE, DENSE_HEADER, Vocab, Vectors, FileType, DENSE_MAGIC_NUMBER
@@ -78,10 +78,63 @@ def read(f: Union[str, TextIO, BinaryIO], file_type: Optional[FileType] = None) 
         reader = read_w2v
     elif file_type is FileType.DENSE:
         reader = read_dense
+    else:
+        raise ValueError(f"Unknown vector format, got: {line_reader}")
     return reader(f)
 
 
-@file_or_name(f="r")
+def _read(f, line_reader):
+    words = {}
+    vectors = []
+    for word, vector in line_reader(f):
+        if word not in words:
+            words[word] = len(words)
+            vectors.append(vector)
+    return words, np.vstack(vectors)
+
+
+@file_or_name
+def read_glove_lines(f: Union[str, TextIO]) -> Iterator[Tuple[str, np.ndarray]]:
+    with mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) as m:
+        for line in iter(m.readline, b""):
+            line = line.decode("utf-8")
+            line = line.rstrip("\n")
+            word, *vector = line.split(" ")
+            yield word, np.asarray(vector, dtype=np.float32)
+
+
+@file_or_name
+def read_w2v_text_lines(f: Union[str, TextIO]) -> Iterator[Tuple[str, np.ndarray]]:
+    # Because the ``mmap`` call starts at the beginning of the file and the offset
+    # needs to be a multiple of ``ALLOCATIONGRANULARITY`` we can't start from the offset
+    # that an ``f.readline()`` would give us. This means we can't just advance by one line
+    # and then call read_glove so I had to duplicate code here :/
+    with mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) as m:
+        _ = m.readline()
+        for line in iter(m.readline, b""):
+            line = line.decode("utf-8")
+            line = line.rstrip("\n")
+            word, *vector = line.split(" ")
+            yield word, np.asarray(vector, dtype=np.float32)
+
+
+@file_or_name(f="rb")
+def read_w2v_lines(f: Union[str, BinaryIO]) -> Iterator[Tuple[str, np.ndarray]]:
+    with mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) as m:
+        header = m.readline()
+        offset = m.tell()
+        vocab, dim = map(int, header.decode("utf-8").split())
+        print(vocab)
+        size = FLOAT_SIZE * dim
+        for _ in range(vocab):
+            word, offset = find_space(m, offset)
+            raw = m[offset : offset + size]
+            vector = np.frombuffer(raw, dtype=np.float32)
+            yield word, vector
+            offset = offset + size
+
+
+@file_or_name
 def read_glove(f: Union[str, TextIO]) -> Tuple[Vocab, Vectors]:
     """Read vectors from a glove file.
 
@@ -108,22 +161,10 @@ def read_glove(f: Union[str, TextIO]) -> Tuple[Vocab, Vectors]:
         vectors are a numpy array of shape ``[vocab size, vector size]``. The
         vocab gives the index offset into the vector matrix for some word.
     """
-    words = {}
-    vectors = []
-    i = 0
-    with mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) as m:
-        for line in iter(m.readline, b""):
-            line = line.decode("utf-8")
-            line = line.rstrip("\n")
-            word, *vector = line.split(" ")
-            if word not in words:
-                words[word] = i
-                vectors.append(np.asarray(vector, dtype=np.float32))
-                i += 1
-    return words, np.vstack(vectors)
+    return _read(f, read_glove_lines)
 
 
-@file_or_name(f="r")
+@file_or_name
 def read_w2v_text(f: Union[str, TextIO]) -> Tuple[Vocab, Vectors]:
     """Read vectors from a text based w2v file.
 
@@ -166,25 +207,7 @@ def read_w2v_text(f: Union[str, TextIO]) -> Tuple[Vocab, Vectors]:
         vectors are a numpy array of shape ``[vocab size, vector size]``. The
         vocab gives the index offset into the vector matrix for some word.
     """
-    words = {}
-    vectors = []
-    i = 0
-
-    # Because the ``mmap`` call starts at the beginning of the file and the offset
-    # needs to be a multiple of ``ALLOCATIONGRANULARITY`` we can't start from the offset
-    # that an ``f.readline()`` would give us. This means we can't just advance by one line
-    # and then call read_glove so I had to duplicate code here :/
-    with mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) as m:
-        _ = m.readline()
-        for line in iter(m.readline, b""):
-            line = line.decode("utf-8")
-            line = line.rstrip("\n")
-            word, *vector = line.split(" ")
-            if word not in words:
-                words[word] = i
-                vectors.append(np.asarray(vector, dtype=np.float32))
-                i += 1
-    return words, np.vstack(vectors)
+    return _read(f, read_w2v_text_lines)
 
 
 @file_or_name(f="rb")
@@ -232,22 +255,7 @@ def read_w2v(f: Union[str, BinaryIO]) -> Tuple[Vocab, Vectors]:
         vectors are a numpy array of shape ``[vocab size, vector size]``. The
         vocab gives the index offset into the vector matrix for some word.
     """
-    words = {}
-    vectors = []
-    with mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) as m:
-        header = m.readline()
-        offset = m.tell()
-        vocab, dim = map(int, header.decode("utf-8").split())
-        size = FLOAT_SIZE * dim
-        for _ in range(vocab):
-            word, offset = find_space(m, offset)
-            if word not in words:
-                words[word] = len(words)
-                raw = m[offset : offset + size]
-                vector = np.frombuffer(raw, dtype=np.float32)
-                vectors.append(vector)
-            offset = offset + size
-    return words, np.vstack(vectors)
+    return _read(f, read_w2v_lines)
 
 
 @file_or_name(f="rb")
@@ -286,8 +294,11 @@ def read_dense(f: Union[str, BinaryIO]) -> Tuple[Vocab, Vectors]:
     Returns:
         The vocab and vectors.
     """
-    words = {}
-    vectors = []
+    return _read(f, read_dense_lines)
+
+
+@file_or_name(f="rb")
+def read_dense_lines(f: Union[str, BinaryIO]) -> Iterator[Tuple[str, np.ndarray]]:
     with mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) as m:
         offset = LONG_SIZE * DENSE_HEADER
         vocab, dim, length = read_dense_header(m[:offset])
@@ -296,11 +307,8 @@ def read_dense(f: Union[str, BinaryIO]) -> Tuple[Vocab, Vectors]:
             start = offset + i * (length + size)
             line = m[start : start + length + size]
             word = line[:length].decode("utf-8").rstrip(" ")
-            if word not in words:
-                vector = np.frombuffer(line[length:], dtype=np.float32)
-                words[word] = len(words)
-                vectors.append(vector)
-    return words, np.vstack(vectors)
+            vector = np.frombuffer(line[length:], dtype=np.float32)
+            yield word, vector
 
 
 @file_or_name(f="rb")
