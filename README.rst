@@ -136,17 +136,21 @@ vocabulary (this length when represented as ``utf-8`` bytes
 rather than as Unicode codepoints). These numbers are represented
 as little-endian unsigned long longs that have a size of 8 bytes.
 
-Following the header the are (word, vector) pairs. The words are
-stored as ``utf-8`` bytes. The trick is that they are padded out to
-be a consistent length (this length is the length of the longest
-word in the vocabulary). After the word the vector is stored where
-each element is a little-endian float32 (4 bytes).
+Following the header the are (length, word, vector) tuples. The
+length is the length of this particular word encoded as a
+little-endian unsigned integer. The word is stored as ``utf-8``
+bytes. The trick is that they are padded out to be a consistent
+length (this length is the length of the longest word in the
+vocabulary) but we keep track of this word length to make reading
+the word from this padded section more efficient. After the word
+the vector is stored where each element is a little-endian
+float32 (4 bytes).
 
 The consistent word lengths lets us calculate the offset to any
 word quickly without having to iterate over the characters to
 find the space as in the word2vec binary format. Finding the
 word at index ``i`` can be done with some offset math.
-``offset for i = header length + i * (max length + vector size)``
+``offset for i = header length + i * (max length + vector size + INT_SIZE)``
 
 .. NOTE::
 

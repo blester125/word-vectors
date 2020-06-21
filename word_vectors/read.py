@@ -16,7 +16,7 @@ import pathlib
 from typing import Tuple, Union, IO, TextIO, BinaryIO, Optional, Iterator, Callable
 import numpy as np
 from file_or_name import file_or_name
-from word_vectors import LONG_SIZE, FLOAT_SIZE, DENSE_HEADER, Vocab, Vectors, FileType, DENSE_MAGIC_NUMBER
+from word_vectors import INT_SIZE, LONG_SIZE, FLOAT_SIZE, DENSE_HEADER, Vocab, Vectors, FileType, DENSE_MAGIC_NUMBER
 from word_vectors.utils import find_space, is_binary, bookmark, uniform_initializer
 
 
@@ -259,13 +259,15 @@ def read_w2v_lines(f: Union[str, BinaryIO]) -> Iterator[Tuple[str, np.ndarray]]:
 def read_dense_lines(f: Union[str, BinaryIO]) -> Iterator[Tuple[str, np.ndarray]]:
     with mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) as m:
         offset = LONG_SIZE * DENSE_HEADER
-        vocab, dim, length = read_dense_header(m[:offset])
+        vocab, dim, max_length = read_dense_header(m[:offset])
         size = FLOAT_SIZE * dim
+        line_length = max_length + size + INT_SIZE
         for i in range(vocab):
-            start = offset + i * (length + size)
-            line = m[start : start + length + size]
-            word = line[:length].rstrip(b" ").decode("utf-8")
-            vector = np.frombuffer(line[length:], dtype=np.float32)
+            start = offset + i * (line_length)
+            line = m[start : start + line_length]
+            token_length = struct.unpack("<I", line[:INT_SIZE])[0]
+            word = line[INT_SIZE : INT_SIZE + token_length].decode("utf-8")
+            vector = np.frombuffer(line[max_length + INT_SIZE :], dtype=np.float32)
             yield word, vector
 
 
@@ -539,17 +541,21 @@ def read_dense(f: Union[str, BinaryIO]) -> Tuple[Vocab, Vectors]:
     rather than as Unicode codepoints). These numbers are represented
     as little-endian unsigned long longs that have a size of 8 bytes.
 
-    Following the header the are (word, vector) pairs. The words are
-    stored as ``utf-8`` bytes. The trick is that they are padded out to
-    be a consistent length (this length is the length of the longest
-    word in the vocabulary). After the word the vector is stored where
-    each element is a little-endian float32 (4 bytes).
+    Following the header the are (length, word, vector) tuples. The
+    length is the length of this particular word encoded as a
+    little-endian unsigned integer. The word is stored as ``utf-8``
+    bytes. The trick is that they are padded out to be a consistent
+    length (this length is the length of the longest word in the
+    vocabulary) but we keep track of this word length to make reading
+    the word from this padded section more efficient. After the word
+    the vector is stored where each element is a little-endian
+    float32 (4 bytes).
 
     The consistent word lengths lets us calculate the offset to any
     word quickly without having to iterate over the characters to
     find the space as in the word2vec binary format. Finding the
     word at index ``i`` can be done with some offset math.
-    ``offset for i = header length + i * (max length + vector size)``
+    ``offset for i = header length + i * (max length + vector size + INT_SIZE)``
 
     Note:
        In the case of duplicated words in the saved vectors we use the index

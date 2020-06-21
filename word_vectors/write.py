@@ -122,6 +122,8 @@ def write_dense(
     for val in (DENSE_MAGIC_NUMBER, len(vocab), vectors.shape[1], max_len):
         wf.write(struct.pack("<Q", val))
     for word, idx in sorted(vocab.items(), key=itemgetter(1)):
+        word_len = len(word.encode("utf-8"))
         word = padded_bytes(word, max_len)
+        wf.write(struct.pack("<I", word_len))
         wf.write(word)
         wf.write(vectors[idx].tobytes())

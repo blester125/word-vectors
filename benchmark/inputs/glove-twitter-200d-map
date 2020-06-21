@@ -1,0 +1,4 @@
+data/glove.twitter.27B.200d.txt glove
+data/glove.twitter.27B.200d.w2v-text w2v-text
+data/glove.twitter.27B.200d.w2v w2v
+data/glove.twitter.27B.200d.dense dense
