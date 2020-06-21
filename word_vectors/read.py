@@ -13,12 +13,11 @@ import mmap
 import struct
 import logging
 import pathlib
-from typing import Tuple, Union, TextIO, BinaryIO, Optional, Iterator
+from typing import Tuple, Union, IO, TextIO, BinaryIO, Optional, Iterator, Callable
 import numpy as np
 from file_or_name import file_or_name
 from word_vectors import LONG_SIZE, FLOAT_SIZE, DENSE_HEADER, Vocab, Vectors, FileType, DENSE_MAGIC_NUMBER
-from word_vectors.utils import find_space, is_binary, bookmark
-from word_vectors.write import write_dense
+from word_vectors.utils import find_space, is_binary, bookmark, uniform_initializer
 
 
 GLOVE_TEXT = re.compile(r"^[^ ]+? (-?\d+?\.\d+? )+", re.MULTILINE)
@@ -71,19 +70,94 @@ def read(f: Union[str, TextIO, BinaryIO], file_type: Optional[FileType] = None) 
         file_type = sniff(f)
         LOGGER.info("Sniffed word vector as type %s", file_type)
     if file_type is FileType.GLOVE:
-        reader = read_glove
+        line_reader = read_glove_lines
     elif file_type is FileType.W2V_TEXT or file_type is FileType.FASTTEXT or file_type is FileType.NUMBERBATCH:
-        reader = read_w2v_text
+        line_reader = read_w2v_text_lines
     elif file_type is FileType.W2V:
-        reader = read_w2v
+        line_reader = read_w2v_lines
     elif file_type is FileType.DENSE:
-        reader = read_dense
+        line_reader = read_dense_lines
     else:
         raise ValueError(f"Unknown vector format, got: {line_reader}")
-    return reader(f)
+    return _read(f, line_reader)
 
 
-def _read(f, line_reader):
+def read_with_vocab(
+    f: Union[str, IO],
+    user_vocab: Vocab,
+    initializer: Callable[[int], np.ndarray] = uniform_initializer(0.25),
+    keep_extra: bool = False,
+    file_type: Optional[FileType] = None,
+) -> Tuple[Vocab, Vectors]:
+    """Read vectors from a file subject user provided vocabulary constraints.
+
+    This function can dispatch to one of the following word vector format readers:
+
+    - :py:func:`~word_vectors.read.read_glove_with_vocab`
+    - :py:func:`~word_vectors.read.read_w2v_text_with_vocab`
+    - :py:func:`~word_vectors.read.read_w2v_with_vocab`
+    - :py:func:`~word_vectors.read.read_dense_with_vocab`
+
+    Check the documentation of a specific reader to see a description of the file
+    format as well as common pre-trained vectors that ship with this format.
+
+    When provided a vocabulary this function will not reorder it. If you pass in that
+    the word ``dog`` is index ``12`` then in the resulting vocabulary it will still
+    be index ``12``.
+
+    When collecting extra vocabulary (words that are in the pre-trained embeddings but
+    not in the user vocab) these will all be at the end of the vocabulary. Again the
+    indices of user provided words will not change.
+
+    Note:
+       In the case of duplicated words in the saved vectors we use the index
+       and associated vector from the first occurrence of the word.
+
+    Note:
+        Without a specified file type this function uses :py:func:`word_vectors.read.sniff`
+        to determine the word vector format and dispatches to the appropriate reader.
+
+        I haven't seen a sniffing failure but if your file type can't be determined you
+        can pass the ``file_type`` explicitly or call the specific reading function yourself.
+
+    Args:
+        f: The file to read from.
+        user_vocab: A specific vocabulary the user wants to extract form the pre-trained
+            embeddings.
+        initializer: A function that takes the vector size and generates a new vector.
+            this is used to generate a representation for a word in the user vocab that
+            is not in the pre-train embeddings.
+        keep_extra: Should you also include vectors that are in the pre-trained embedding
+            but not in the user provided vocab?
+        file_type: The vector file format. If ``None`` the file is sniffed to determine
+            format.
+
+    Returns:
+        The vocab and vectors. The vocab is a mapping from word to integer and
+        vectors are a numpy array of shape ``[vocab size, vector size]``. The
+        vocab gives the index offset into the vector matrix for some word.
+    """
+    if file_type is None:
+        file_type = sniff(f)
+        LOGGER.info("Sniffed word vector as type %s", file_type)
+    if file_type is FileType.GLOVE:
+        line_reader = read_glove_lines
+    elif file_type is FileType.W2V_TEXT or file_type is FileType.FASTTEXT or file_type is FileType.NUMBERBATCH:
+        line_reader = read_w2v_text_lines
+    elif file_type is FileType.W2V:
+        line_reader = read_w2v_lines
+    elif file_type is FileType.DENSE:
+        line_reader = read_dense_lines
+    else:
+        raise ValueError(f"Unknown vector format, got: {line_reader}")
+    if keep_extra:
+        return _read_with_vocab_extra(f, line_reader, user_vocab, initializer)
+    return _read_with_vocab(f, line_reader, user_vocab, initializer)
+
+
+def _read(
+    f: Union[str, IO], line_reader: Callable[[Union[str, IO]], Iterator[Tuple[str, np.ndarray]]]
+) -> Tuple[Vocab, Vectors]:
     words = {}
     vectors = []
     for word, vector in line_reader(f):
@@ -91,6 +165,54 @@ def _read(f, line_reader):
             words[word] = len(words)
             vectors.append(vector)
     return words, np.vstack(vectors)
+
+
+def _read_with_vocab(
+    f: Union[str, IO],
+    line_reader: Callable[[Union[str, IO]], Iterator[Tuple[str, np.ndarray]]],
+    user_vocab: Vocab,
+    initializer: Callable[[int], np.ndarray],
+) -> Tuple[Vocab, Vectors]:
+    vectors = [None for _ in range(len(user_vocab))]
+    for word, vector in line_reader(f):
+        vector_size = len(vector)
+        if word in user_vocab:
+            idx = user_vocab[word]
+            if vectors[idx] is None:
+                vectors[idx] = vector
+    for i, vector in enumerate(vectors):
+        if vector is None:
+            vectors[i] = initializer(vector_size)
+    return user_vocab, np.vstack(vectors)
+
+
+def _read_with_vocab_extra(
+    f: Union[str, IO],
+    line_reader: Callable[[Union[str, IO]], Iterator[Tuple[str, np.ndarray]]],
+    user_vocab: Vocab,
+    initializer: Callable[[int], np.ndarray],
+) -> Tuple[Vocab, Vectors]:
+    user_vocab_size = len(user_vocab)
+    vectors = [None for _ in range(len(user_vocab))]
+    extra_words = {}
+    extra_vectors = []
+    for word, vector in line_reader(f):
+        vector_size = len(vector)
+        if word in user_vocab:
+            idx = user_vocab[word]
+            if vectors[idx] is None:
+                vectors[idx] = vector
+        else:
+            if word not in extra_words:
+                extra_words[word] = len(extra_words)
+                extra_vectors.append(vector)
+    for i, vector in enumerate(vectors):
+        if vector is None:
+            vectors[i] = initializer(vector_size)
+    for word, idx in extra_words.items():
+        user_vocab[word] = user_vocab_size + idx
+    vectors.extend(extra_vectors)
+    return user_vocab, np.vstack(vectors)
 
 
 @file_or_name
@@ -124,7 +246,6 @@ def read_w2v_lines(f: Union[str, BinaryIO]) -> Iterator[Tuple[str, np.ndarray]]:
         header = m.readline()
         offset = m.tell()
         vocab, dim = map(int, header.decode("utf-8").split())
-        print(vocab)
         size = FLOAT_SIZE * dim
         for _ in range(vocab):
             word, offset = find_space(m, offset)
@@ -179,6 +300,50 @@ def read_glove(f: Union[str, TextIO]) -> Tuple[Vocab, Vectors]:
 
 
 @file_or_name
+def read_glove_with_vocab(
+    f: Union[str, TextIO],
+    user_vocab: Vocab,
+    initializer: Callable[[int], np.ndarray] = uniform_initializer(0.25),
+    keep_extra: bool = False,
+) -> Tuple[Vocab, Vectors]:
+    """Read vectors from a glove file subject to user vocabulary constraints.
+
+    See :py:func:`~word_vectors.read.read_glove` for a description of the file format
+    and common pre-train embeddings that use this format.
+
+    When provided a vocabulary this function will not reorder it. If you pass in that
+    the word ``dog`` is index ``12`` then in the resulting vocabulary it will still
+    be index ``12``.
+
+    When collecting extra vocabulary (words that are in the pre-trained embeddings but
+    not in the user vocab) these will all be at the end of the vocabulary. Again the
+    indices of user provided words will not change.
+
+    Note:
+       In the case of duplicated words in the saved vectors we use the index
+       and associated vector from the first occurrence of the word.
+
+    Args:
+        f: The file to read from.
+        user_vocab: A specific vocabulary the user wants to extract form the pre-trained
+            embeddings.
+        initializer: A function that takes the vector size and generates a new vector.
+            this is used to generate a representation for a word in the user vocab that
+            is not in the pre-train embeddings.
+        keep_extra: Should you also include vectors that are in the pre-trained embedding
+            but not in the user provided vocab?
+
+    Returns:
+        The vocab and vectors. The vocab is a mapping from word to integer and
+        vectors are a numpy array of shape ``[vocab size, vector size]``. The
+        vocab gives the index offset into the vector matrix for some word.
+    """
+    if keep_extra:
+        return _read_with_vocab_extra(f, read_glove_lines, user_vocab, initializer)
+    return _read_with_vocab(f, read_glove_lines, user_vocab, initializer)
+
+
+@file_or_name
 def read_w2v_text(f: Union[str, TextIO]) -> Tuple[Vocab, Vectors]:
     """Read vectors from a text based w2v file.
 
@@ -222,6 +387,50 @@ def read_w2v_text(f: Union[str, TextIO]) -> Tuple[Vocab, Vectors]:
         vocab gives the index offset into the vector matrix for some word.
     """
     return _read(f, read_w2v_text_lines)
+
+
+@file_or_name
+def read_w2v_text_with_vocab(
+    f: Union[str, TextIO],
+    user_vocab: Vocab,
+    initializer: Callable[[int], np.ndarray] = uniform_initializer(0.25),
+    keep_extra: bool = False,
+) -> Tuple[Vocab, Vectors]:
+    """Read vectors from a Word2Vec text file subject to user vocabulary constraints.
+
+    See :py:func:`~word_vectors.read.read_w2v_text` for a description of the file format
+    and common pre-train embeddings that use this format.
+
+    When provided a vocabulary this function will not reorder it. If you pass in that
+    the word ``dog`` is index ``12`` then in the resulting vocabulary it will still
+    be index ``12``.
+
+    When collecting extra vocabulary (words that are in the pre-trained embeddings but
+    not in the user vocab) these will all be at the end of the vocabulary. Again the
+    indices of user provided words will not change.
+
+    Note:
+       In the case of duplicated words in the saved vectors we use the index
+       and associated vector from the first occurrence of the word.
+
+    Args:
+        f: The file to read from.
+        user_vocab: A specific vocabulary the user wants to extract form the pre-trained
+            embeddings.
+        initializer: A function that takes the vector size and generates a new vector.
+            this is used to generate a representation for a word in the user vocab that
+            is not in the pre-train embeddings.
+        keep_extra: Should you also include vectors that are in the pre-trained embedding
+            but not in the user provided vocab?
+
+    Returns:
+        The vocab and vectors. The vocab is a mapping from word to integer and
+        vectors are a numpy array of shape ``[vocab size, vector size]``. The
+        vocab gives the index offset into the vector matrix for some word.
+    """
+    if keep_extra:
+        return _read_with_vocab_extra(f, read_w2v_text_lines, user_vocab, initializer)
+    return _read_with_vocab(f, read_w2v_text_lines, user_vocab, initializer)
 
 
 @file_or_name(f="rb")
@@ -273,6 +482,50 @@ def read_w2v(f: Union[str, BinaryIO]) -> Tuple[Vocab, Vectors]:
 
 
 @file_or_name(f="rb")
+def read_w2v_with_vocab(
+    f: Union[str, BinaryIO],
+    user_vocab: Vocab,
+    initializer: Callable[[int], np.ndarray] = uniform_initializer(0.25),
+    keep_extra: bool = False,
+) -> Tuple[Vocab, Vectors]:
+    """Read vectors from a Word2Vec file subject to user vocabulary constraints.
+
+    See :py:func:`~word_vectors.read.read_w2v` for a description of the file format
+    and common pre-train embeddings that use this format.
+
+    When provided a vocabulary this function will not reorder it. If you pass in that
+    the word ``dog`` is index ``12`` then in the resulting vocabulary it will still
+    be index ``12``.
+
+    When collecting extra vocabulary (words that are in the pre-trained embeddings but
+    not in the user vocab) these will all be at the end of the vocabulary. Again the
+    indices of user provided words will not change.
+
+    Note:
+       In the case of duplicated words in the saved vectors we use the index
+       and associated vector from the first occurrence of the word.
+
+    Args:
+        f: The file to read from.
+        user_vocab: A specific vocabulary the user wants to extract form the pre-trained
+            embeddings.
+        initializer: A function that takes the vector size and generates a new vector.
+            this is used to generate a representation for a word in the user vocab that
+            is not in the pre-train embeddings.
+        keep_extra: Should you also include vectors that are in the pre-trained embedding
+            but not in the user provided vocab?
+
+    Returns:
+        The vocab and vectors. The vocab is a mapping from word to integer and
+        vectors are a numpy array of shape ``[vocab size, vector size]``. The
+        vocab gives the index offset into the vector matrix for some word.
+    """
+    if keep_extra:
+        return _read_with_vocab_extra(f, read_w2v_lines, user_vocab, initializer)
+    return _read_with_vocab(f, read_w2v_lines, user_vocab, initializer)
+
+
+@file_or_name(f="rb")
 def read_dense(f: Union[str, BinaryIO]) -> Tuple[Vocab, Vectors]:
     """Read vectors from a dense file.
 
@@ -309,6 +562,50 @@ def read_dense(f: Union[str, BinaryIO]) -> Tuple[Vocab, Vectors]:
         The vocab and vectors.
     """
     return _read(f, read_dense_lines)
+
+
+@file_or_name(f="rb")
+def read_dense_with_vocab(
+    f: Union[str, BinaryIO],
+    user_vocab: Vocab,
+    initializer: Callable[[int], np.ndarray] = uniform_initializer(0.25),
+    keep_extra: bool = False,
+) -> Tuple[Vocab, Vectors]:
+    """Read vectors from a Dense file subject to user vocabulary constraints.
+
+    See :py:func:`~word_vectors.read.read_dense` for a description of the file format
+    and common pre-train embeddings that use this format.
+
+    When provided a vocabulary this function will not reorder it. If you pass in that
+    the word ``dog`` is index ``12`` then in the resulting vocabulary it will still
+    be index ``12``.
+
+    When collecting extra vocabulary (words that are in the pre-trained embeddings but
+    not in the user vocab) these will all be at the end of the vocabulary. Again the
+    indices of user provided words will not change.
+
+    Note:
+       In the case of duplicated words in the saved vectors we use the index
+       and associated vector from the first occurrence of the word.
+
+    Args:
+        f: The file to read from.
+        user_vocab: A specific vocabulary the user wants to extract form the pre-trained
+            embeddings.
+        initializer: A function that takes the vector size and generates a new vector.
+            this is used to generate a representation for a word in the user vocab that
+            is not in the pre-train embeddings.
+        keep_extra: Should you also include vectors that are in the pre-trained embedding
+            but not in the user provided vocab?
+
+    Returns:
+        The vocab and vectors. The vocab is a mapping from word to integer and
+        vectors are a numpy array of shape ``[vocab size, vector size]``. The
+        vocab gives the index offset into the vector matrix for some word.
+    """
+    if keep_extra:
+        return _read_with_vocab_extra(f, read_dense_lines, user_vocab, initializer)
+    return _read_with_vocab(f, read_dense_lines, user_vocab, initializer)
 
 
 @file_or_name(f="rb")

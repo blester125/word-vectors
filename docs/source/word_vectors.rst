@@ -19,7 +19,6 @@ word\_vectors.read
 
 .. automodule:: word_vectors.read
    :members:
-   :undoc-members:
 
 word\_vectors.write
 -------------------
