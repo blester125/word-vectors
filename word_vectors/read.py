@@ -264,7 +264,7 @@ def read_dense_lines(f: Union[str, BinaryIO]) -> Iterator[Tuple[str, np.ndarray]
         for i in range(vocab):
             start = offset + i * (length + size)
             line = m[start : start + length + size]
-            word = line[:length].decode("utf-8").rstrip(" ")
+            word = line[:length].rstrip(b" ").decode("utf-8")
             vector = np.frombuffer(line[length:], dtype=np.float32)
             yield word, vector
 
