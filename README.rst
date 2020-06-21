@@ -308,7 +308,7 @@ Writing similarly has a main :py:func:`word_vectors.write.write` function that d
     >>> from word_vectors.write import write
     >>> write("/path/to/vectors.dense", v, wv, FileType.DENSE)
     >>> write("/path/to/vectors.w2v", v, wv, FileType.W2V)
-    >>> write_glove("/path/to/vectors.glove", v, wv")
+    >>> write_glove("/path/to/vectors.glove", v, wv)
 
 Converting
 ----------

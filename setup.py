@@ -1,3 +1,4 @@
+import re
 import ast
 from typing import Optional
 from setuptools import setup, find_packages
@@ -11,6 +12,14 @@ def get_version(file_name: str, version_name: str = "__version__") -> Optional[s
                 if node.targets[0].id == version_name:
                     return node.value.s
     raise ValueError(f"Couldn't find assignment to variable {version_name} in file {file_name}")
+
+
+def patch_readme(file_name):
+    with open(file_name) as f:
+        data = f.read()
+        data = re.sub(r":py:(?:func|attr):`~?(.*?)`", r"``\1``", data)
+    print(data)
+    return data
 
 
 class About(object):
@@ -31,7 +40,8 @@ setup(
     name=About.NAME,
     version=About.VERSION,
     description=About.DESCRIPTION,
-    long_description=open("README.rst").read(),
+    long_description=patch_readme("README.rst"),
+    long_description_content_type="text/x-rst",
     author=About.AUTHOR,
     author_email=About.EMAIL,
     url=About.URL,
