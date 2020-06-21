@@ -47,7 +47,7 @@ setup(
     extras_require={"test": ["pytest"],},
     keywords=[],
     ext_modules=ext_modules,
-    entry_points={"console_scripts": [],},
+    entry_points={"console_scripts": ["convert-embeddings = word_vectors.scripts.convert_embeddings:main",],},
     classifiers={
         "Development Status :: 3 - Alpha",
         "Environment :: Console",

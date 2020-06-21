@@ -154,6 +154,16 @@ word at index ``i`` can be done with some offset math.
     file and not just trying to extract word vectors from a
     random binary file. The Magic Number is ``2283``.
 
+.. NOTE::
+
+    One of the downsides of this format is that it is harder
+    to inspect the file to see information like the vocabulary
+    size or the vector size. Unlink the Word2Vec format the
+    header is not text so a simple ``head -n 1 embedding-file``
+    will **NOT** work. Instead you can use
+    ``od -l --endian=little -N 32 embedding-file`` and you should
+    see the magic number, the vocabulary size, and the vector size.
+
 `A note on the Senna format`: There is an older format of embeddings called `Senna embeddings`_ `(Collobert, et. al.,
 2011)`_. The format actually uses two files. There is a vocabulary file where each line has a single word and an
 vector file where each line has the text representations of the float32 elements in a vector separated by a
