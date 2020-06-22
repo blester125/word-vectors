@@ -10,3 +10,7 @@
 [Benchmark] Dense size: 3.63GB
 [Benchmark] Dense: 15.90s ± 0.23
 ```
+
+```python
+embed_stats.merge(embed_size, on=["embedding_id"])[["Name", "format", "human_readable"]]
+```

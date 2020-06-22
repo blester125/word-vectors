@@ -1,0 +1,4 @@
+data/wiki-news-300d-1M.vec w2v-text
+data/wiki-news-300d-1M.glove glove
+data/wiki-news-300d-1M.w2v w2v
+data/wiki-news-300d-1M.dense dense
