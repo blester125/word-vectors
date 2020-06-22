@@ -1,4 +1,4 @@
-embedding_id,Name,vocab_size,unique_vocab_size,vector_size,shortest_token,longest_token,avg_token,std_token,precentage_padding
+embedding_id,name,vocab_size,unique_vocab_size,vector_size,shortest_token,longest_token,avg_token,std_token,precentage_padding
 0,GloVe 6B,400000,400000,100,1,68,7.391185,2.8025566776757302,89.1306
 1,GloVe 840B,2196017,2196016,300,1,1005,7.987036524324049,4.301912320938763,99.2053
 2,GloVe 42B,1917494,1917494,300,1,1000,8.177169785146654,4.069487277548805,99.1823
