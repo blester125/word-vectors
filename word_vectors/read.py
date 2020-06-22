@@ -537,16 +537,17 @@ def read_dense(f: Union[str, BinaryIO]) -> Tuple[Vocab, Vectors]:
     4-tuple. The elements of
     this tuple are: A magic number, the size of the vocabulary, the
     size of the vectors, and the length of the longest word in the
-    vocabulary (this length when represented as ``utf-8`` bytes
-    rather than as Unicode codepoints). These numbers are represented
-    as little-endian unsigned long longs that have a size of 8 bytes.
+    vocabulary (this refers to the lengths of words when represented
+    as ``utf-8`` bytes rather than as Unicode codepoints). These
+    numbers are represented as little-endian unsigned long longs that
+    have a size of 8 bytes.
 
-    Following the header the are (length, word, vector) tuples. The
+    Following the header there are (length, word, vector) tuples. The
     length is the length of this particular word encoded as a
     little-endian unsigned integer. The word is stored as ``utf-8``
-    bytes. The trick is that they are padded out to be a consistent
+    bytes. The trick is that words are padded out to be a consistent
     length (this length is the length of the longest word in the
-    vocabulary) but we keep track of this word length to make reading
+    vocabulary) but we keep track the length of this word to make reading
     the word from this padded section more efficient. After the word
     the vector is stored where each element is a little-endian
     float32 (4 bytes).
