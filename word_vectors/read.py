@@ -13,6 +13,8 @@ import mmap
 import struct
 import logging
 import pathlib
+import platform
+from functools import partial
 from typing import Tuple, Union, IO, TextIO, BinaryIO, Optional, Iterator, Callable
 import numpy as np
 from file_or_name import file_or_name
@@ -26,6 +28,8 @@ W2V_TEXT = re.compile(r"^\d+ \d+$", re.MULTILINE)
 W2V_BIN = re.compile(br"^\d+ \d+$", re.MULTILINE)
 
 LOGGER = logging.getLogger("word_vectors")
+
+_mmap = mmap.mmap if platform.system() == "Windows" else partial(mmap.mmap, prot=mmap.PROT_READ)
 
 
 # We don't know what mode to open the file in (text for things like Glove while
@@ -217,7 +221,7 @@ def _read_with_vocab_extra(
 
 @file_or_name
 def read_glove_lines(f: Union[str, TextIO]) -> Iterator[Tuple[str, np.ndarray]]:
-    with mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) as m:
+    with _mmap(f.fileno(), 0) as m:
         for line in iter(m.readline, b""):
             line = line.decode("utf-8")
             line = line.rstrip("\n")
@@ -231,7 +235,7 @@ def read_w2v_text_lines(f: Union[str, TextIO]) -> Iterator[Tuple[str, np.ndarray
     # needs to be a multiple of ``ALLOCATIONGRANULARITY`` we can't start from the offset
     # that an ``f.readline()`` would give us. This means we can't just advance by one line
     # and then call read_glove so I had to duplicate code here :/
-    with mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) as m:
+    with _mmap(f.fileno(), 0) as m:
         _ = m.readline()
         for line in iter(m.readline, b""):
             line = line.decode("utf-8")
@@ -242,7 +246,7 @@ def read_w2v_text_lines(f: Union[str, TextIO]) -> Iterator[Tuple[str, np.ndarray
 
 @file_or_name(f="rb")
 def read_w2v_lines(f: Union[str, BinaryIO]) -> Iterator[Tuple[str, np.ndarray]]:
-    with mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) as m:
+    with _mmap(f.fileno(), 0) as m:
         header = m.readline()
         offset = m.tell()
         vocab, dim = map(int, header.decode("utf-8").split())
@@ -257,7 +261,7 @@ def read_w2v_lines(f: Union[str, BinaryIO]) -> Iterator[Tuple[str, np.ndarray]]:
 
 @file_or_name(f="rb")
 def read_dense_lines(f: Union[str, BinaryIO]) -> Iterator[Tuple[str, np.ndarray]]:
-    with mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) as m:
+    with _mmap(f.fileno(), 0) as m:
         offset = LONG_SIZE * DENSE_HEADER
         vocab, dim, max_length = read_dense_header(m[:offset])
         size = FLOAT_SIZE * dim

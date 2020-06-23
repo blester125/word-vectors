@@ -1,0 +1,14 @@
+data/glove.6B.100d.w2v-text text
+data/glove.6B.100d.w2v binary
+data/glove.twitter.27B.200d.w2v-text text
+data/glove.twitter.27B.200d.w2v binary
+data/glove.42B.300d.w2v-text text
+data/glove.42B.300d.w2v binary
+data/glove.840B.300d.w2v-text text
+data/glove.840B.300d.w2v binary
+data/crawl-300d-2M.vec text
+data/crawl-300d-2M.w2v binary
+data/wiki-news-300d-1M.vec text
+data/wiki-news-300d-1M.w2v binary
+data/GoogleNews-vectors-negative300.bin binary
+data/GoogleNews-vectors-negative300.w2v-text text
