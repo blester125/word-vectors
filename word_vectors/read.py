@@ -29,7 +29,11 @@ W2V_BIN = re.compile(br"^\d+ \d+$", re.MULTILINE)
 
 LOGGER = logging.getLogger("word_vectors")
 
-_mmap = mmap.mmap if platform.system() == "Windows" else partial(mmap.mmap, prot=mmap.PROT_READ)
+_mmap = (
+    partial(mmap.mmap, access=mmap.ACCESS_READ)
+    if platform.system() == "Windows"
+    else partial(mmap.mmap, prot=mmap.PROT_READ, access=mmap.ACCESS_READ)
+)
 
 
 # We don't know what mode to open the file in (text for things like Glove while
