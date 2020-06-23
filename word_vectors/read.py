@@ -32,7 +32,7 @@ LOGGER = logging.getLogger("word_vectors")
 _mmap = (
     partial(mmap.mmap, access=mmap.ACCESS_READ)
     if platform.system() == "Windows"
-    else partial(mmap.mmap, prot=mmap.PROT_READ, access=mmap.ACCESS_READ)
+    else partial(mmap.mmap, prot=mmap.PROT_READ)
 )
 
 
