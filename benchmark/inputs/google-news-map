@@ -2,3 +2,4 @@ data/GoogleNews-vectors-negative300.bin w2v
 data/GoogleNews-vectors-negative300.glove glove
 data/GoogleNews-vectors-negative300.w2v-text w2v-text
 data/GoogleNews-vectors-negative300.dense dense
+data/GoogleNews-vectors-negative300.leader leader

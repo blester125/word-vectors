@@ -18,3 +18,8 @@
 {"file": "data/glove.twitter.27B.200d.dense", "format": "dense", "time": 6.060593605041504}
 {"file": "data/glove.twitter.27B.200d.dense", "format": "dense", "time": 6.033979415893555}
 {"file": "data/glove.twitter.27B.200d.dense", "format": "dense", "time": 6.073296546936035}
+{"file": "data/glove.twitter.27B.200d.leader", "format": "leader", "time": 5.465139627456665}
+{"file": "data/glove.twitter.27B.200d.leader", "format": "leader", "time": 5.528043031692505}
+{"file": "data/glove.twitter.27B.200d.leader", "format": "leader", "time": 5.501737117767334}
+{"file": "data/glove.twitter.27B.200d.leader", "format": "leader", "time": 5.582242965698242}
+{"file": "data/glove.twitter.27B.200d.leader", "format": "leader", "time": 5.537660360336304}

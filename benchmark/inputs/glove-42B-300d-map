@@ -2,3 +2,4 @@ data/glove.42B.300d.txt glove
 data/glove.42B.300d.w2v-text w2v-text
 data/glove.42B.300d.w2v w2v
 data/glove.42B.300d.dense dense
+data/glove.42B.300d.leader leader

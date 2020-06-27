@@ -2,3 +2,4 @@ data/glove.6B.100d.txt glove
 data/glove.6B.100d.w2v-text w2v-text
 data/glove.6B.100d.w2v w2v
 data/glove.6B.100d.dense dense
+data/glove.6B.100d.leader leader

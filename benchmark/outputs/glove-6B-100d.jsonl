@@ -18,3 +18,8 @@
 {"file": "data/glove.6B.100d.dense", "format": "dense", "time": 1.5591464042663574}
 {"file": "data/glove.6B.100d.dense", "format": "dense", "time": 1.5490772724151611}
 {"file": "data/glove.6B.100d.dense", "format": "dense", "time": 1.5741603374481201}
+{"file": "data/glove.6B.100d.leader", "format": "leader", "time": 1.4223272800445557}
+{"file": "data/glove.6B.100d.leader", "format": "leader", "time": 1.493467092514038}
+{"file": "data/glove.6B.100d.leader", "format": "leader", "time": 1.472348928451538}
+{"file": "data/glove.6B.100d.leader", "format": "leader", "time": 1.5119259357452393}
+{"file": "data/glove.6B.100d.leader", "format": "leader", "time": 1.543013334274292}
