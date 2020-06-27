@@ -462,7 +462,7 @@ def read_w2v(f: Union[str, BinaryIO]) -> Tuple[Vocab, Vectors]:
         There is no formal definition of this file format, the only definitive
         reference on it is the original implementation in the `word2vec software`_
 
-        Due to the lack of a definition (an no special handling of it in the code)
+        Due to the lack of a definition (and no special handling of it in the code)
         there is no explicit statements about the endianness of the binary representations.
         Most code just uses the ``numpy.from_buffer`` and that seems to work now that
         most people have little-endian machines. However due to the lack of explicit
