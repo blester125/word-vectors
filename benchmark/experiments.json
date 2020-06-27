@@ -1,0 +1,343 @@
+[
+    {
+        "experiment": "GloVe 6B w2v vs Leader",
+        "research_hypo": "Leader is faster than w2v",
+        "null_hypo": "There is no difference between the Leader and w2v format",
+        "treatment": {
+            "mean": 1.49,
+            "std": 0.05,
+            "obs": 5
+        },
+        "control": {
+            "mean": 1.97,
+            "std": 0.12,
+            "obs": 5
+        },
+        "test_type": "less"
+    },
+    {
+        "experiment": "GloVe 27B w2v vs Leader",
+        "research_hypo": "Leader is faster than w2v",
+        "null_hypo": "There is no difference between the Leader and w2v format",
+        "treatment": {
+            "mean": 5.52,
+            "std": 0.04,
+            "obs": 5
+        },
+        "control": {
+            "mean": 6.97,
+            "std": 0.09,
+            "obs": 5
+        },
+        "test_type": "less"
+    },
+    {
+        "experiment": "GloVe 42B w2v vs Leader",
+        "research_hypo": "Leader is faster than w2v",
+        "null_hypo": "There is no difference between the Leader and w2v format",
+        "treatment": {
+            "mean": 9.21,
+            "std": 0.49,
+            "obs": 5
+        },
+        "control": {
+            "mean": 11.22,
+            "std": 0.28,
+            "obs": 5
+        },
+        "test_type": "less"
+    },
+    {
+        "experiment": "GloVe 840B w2v vs Leader",
+        "research_hypo": "Leader is faster than w2v",
+        "null_hypo": "There is no difference between the Leader and w2v format",
+        "treatment": {
+            "mean": 10.52,
+            "std": 0.48,
+            "obs": 5
+        },
+        "control": {
+            "mean": 12.92,
+            "std": 0.35,
+            "obs": 5
+        },
+        "test_type": "less"
+    },
+    {
+        "experiment": "FastText Wiki w2v vs Leader",
+        "research_hypo": "Leader is faster than w2v",
+        "null_hypo": "There is no difference between the Leader and w2v format",
+        "treatment": {
+            "mean": 4.76,
+            "std": 0.25,
+            "obs": 5
+        },
+        "control": {
+            "mean": 5.82,
+            "std": 0.19,
+            "obs": 5
+        },
+        "test_type": "less"
+    },
+    {
+        "experiment": "FastText Crawl w2v vs Leader",
+        "research_hypo": "Leader is faster than w2v",
+        "null_hypo": "There is no difference between the Leader and w2v format",
+        "treatment": {
+            "mean": 9.87,
+            "std": 0.25,
+            "obs": 5
+        },
+        "control": {
+            "mean": 11.53,
+            "std": 0.15,
+            "obs": 5
+        },
+        "test_type": "less"
+    },
+    {
+        "experiment": "Google News w2v vs Leader",
+        "research_hypo": "Leader is faster than w2v",
+        "null_hypo": "There is no difference between the Leader and w2v format",
+        "treatment": {
+            "mean": 14.82,
+            "std": 0.06,
+            "obs": 5
+        },
+        "control": {
+            "mean": 19.41,
+            "std": 0.15,
+            "obs": 5
+        },
+        "test_type": "less"
+    },
+    {
+        "experiment": "GloVe 6B, word2vec text, word-vectors vs gensim",
+        "research_hypo": "word-vectors is faster than gensim",
+        "null_hypo": "There is no difference between the word-vectors and gensim library",
+        "treatment": {
+            "mean": 11.15,
+            "std": 0.10,
+            "obs": 5
+        },
+        "control": {
+            "mean": 37.58,
+            "std": 1.03,
+            "obs": 5
+        },
+        "test_type": "less"
+    },
+    {
+        "experiment": "GloVe 6B, word2vec binary, word-vectors vs gensim",
+        "research_hypo": "word-vectors is faster than gensim",
+        "null_hypo": "There is no difference between the word-vectors and gensim library",
+        "treatment": {
+            "mean": 1.97,
+            "std": 0.12,
+            "obs": 5
+        },
+        "control": {
+            "mean": 2.50,
+            "std": 0.08,
+            "obs": 5
+        },
+        "test_type": "less"
+    },
+
+    {
+        "experiment": "GloVe 27B, word2vec text, word-vectors vs gensim",
+        "research_hypo": "word-vectors is faster than gensim",
+        "null_hypo": "There is no difference between the word-vectors and gensim library",
+        "treatment": {
+            "mean": 62.06,
+            "std": 1.05,
+            "obs": 5
+        },
+        "control": {
+            "mean": 210.47,
+            "std": 6.70,
+            "obs": 5
+        },
+        "test_type": "less"
+    },
+    {
+        "experiment": "GloVe 27B, word2vec binary, word-vectors vs gensim",
+        "research_hypo": "word-vectors is faster than gensim",
+        "null_hypo": "There is no difference between the word-vectors and gensim library",
+        "treatment": {
+            "mean": 6.97,
+            "std": 0.09,
+            "obs": 5
+        },
+        "control": {
+            "mean": 7.52,
+            "std": 0.31,
+            "obs": 5
+        },
+        "test_type": "less"
+    },
+
+    {
+        "experiment": "GloVe 42B, word2vec text, word-vectors vs gensim",
+        "research_hypo": "word-vectors is faster than gensim",
+        "null_hypo": "There is no difference between the word-vectors and gensim library",
+        "treatment": {
+            "mean": 138.53,
+            "std": 2.30,
+            "obs": 5
+        },
+        "control": {
+            "mean": 484.95,
+            "std": 1.77,
+            "obs": 5
+        },
+        "test_type": "less"
+    },
+    {
+        "experiment": "GloVe 42B, word2vec binary, word-vectors vs gensim",
+        "research_hypo": "word-vectors is faster than gensim",
+        "null_hypo": "There is no difference between the word-vectors and gensim library",
+        "treatment": {
+            "mean": 11.22,
+            "std": 0.28,
+            "obs": 5
+        },
+        "control": {
+            "mean": 12.93,
+            "std": 0.17,
+            "obs": 5
+        },
+        "test_type": "less"
+    },
+
+    {
+        "experiment": "GloVe 840B, word2vec text, word-vectors vs gensim",
+        "research_hypo": "word-vectors is faster than gensim",
+        "null_hypo": "There is no difference between the word-vectors and gensim library",
+        "treatment": {
+            "mean": 154.12,
+            "std": 0.33,
+            "obs": 5
+        },
+        "control": {
+            "mean": 554.43,
+            "std": 5.61,
+            "obs": 5
+        },
+        "test_type": "less"
+    },
+    {
+        "experiment": "GloVe 840B, word2vec binary, word-vectors vs gensim",
+        "research_hypo": "word-vectors is faster than gensim",
+        "null_hypo": "There is no difference between the word-vectors and gensim library",
+        "treatment": {
+            "mean": 12.92,
+            "std": 0.35,
+            "obs": 5
+        },
+        "control": {
+            "mean": 14.90,
+            "std": 0.12,
+            "obs": 5
+        },
+        "test_type": "less"
+    },
+
+    {
+        "experiment": "FastText Wiki, word2vec text, word-vectors vs gensim",
+        "research_hypo": "word-vectors is faster than gensim",
+        "null_hypo": "There is no difference between the word-vectors and gensim library",
+        "treatment": {
+            "mean": 66.97,
+            "std": 0.08,
+            "obs": 5
+        },
+        "control": {
+            "mean": 243.63,
+            "std": 4.11,
+            "obs": 5
+        },
+        "test_type": "less"
+    },
+    {
+        "experiment": "FastText Wiki, word2vec binary, word-vectors vs gensim",
+        "research_hypo": "word-vectors is faster than gensim",
+        "null_hypo": "There is no difference between the word-vectors and gensim library",
+        "treatment": {
+            "mean": 5.82,
+            "std": 0.19,
+            "obs": 5
+        },
+        "control": {
+            "mean": 6.85,
+            "std": 0.22,
+            "obs": 5
+        },
+        "test_type": "less"
+    },
+
+    {
+        "experiment": "FastText Crawl, word2vec text, word-vectors vs gensim",
+        "research_hypo": "word-vectors is faster than gensim",
+        "null_hypo": "There is no difference between the word-vectors and gensim library",
+        "treatment": {
+            "mean": 136.86,
+            "std": 2.14,
+            "obs": 5
+        },
+        "control": {
+            "mean": 484.71,
+            "std": 5.40,
+            "obs": 5
+        },
+        "test_type": "less"
+    },
+    {
+        "experiment": "FastText Crawl, word2vec binary, word-vectors vs gensim",
+        "research_hypo": "word-vectors is faster than gensim",
+        "null_hypo": "There is no difference between the word-vectors and gensim library",
+        "treatment": {
+            "mean": 11.53,
+            "std": 0.15,
+            "obs": 5
+        },
+        "control": {
+            "mean": 13.57,
+            "std": 0.35,
+            "obs": 5
+        },
+        "test_type": "less"
+    },
+    {
+        "experiment": "Google News, word2vec text, word-vectors vs gensim",
+        "research_hypo": "word-vectors is faster than gensim",
+        "null_hypo": "There is no difference between the word-vectors and gensim library",
+        "treatment": {
+            "mean": 357.26,
+            "std": 7.16,
+            "obs": 5
+        },
+        "control": {
+            "mean": 782.46,
+            "std": 61.85,
+            "obs": 5
+        },
+        "test_type": "less"
+    },
+    {
+        "experiment": "Google News, word2vec binary, word-vectors vs gensim",
+        "research_hypo": "word-vectors is faster than gensim",
+        "null_hypo": "There is no difference between the word-vectors and gensim library",
+        "treatment": {
+            "mean": 19.41,
+            "std": 0.25,
+            "obs": 5
+        },
+        "control": {
+            "mean": 21.54,
+            "std": 0.81,
+            "obs": 5
+        },
+        "test_type": "less"
+    }
+]
