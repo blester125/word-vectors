@@ -18,7 +18,7 @@ from functools import partial
 from typing import Tuple, Union, IO, TextIO, BinaryIO, Optional, Iterator, Callable
 import numpy as np
 from file_or_name import file_or_name
-from word_vectors import INT_SIZE, LONG_SIZE, FLOAT_SIZE, DENSE_HEADER, Vocab, Vectors, FileType, DENSE_MAGIC_NUMBER
+from word_vectors import INT_SIZE, LONG_SIZE, FLOAT_SIZE, LEADER_HEADER, Vocab, Vectors, FileType, LEADER_MAGIC_NUMBER
 from word_vectors.utils import find_space, is_binary, bookmark, uniform_initializer
 
 
@@ -31,7 +31,7 @@ LOGGER = logging.getLogger("word_vectors")
 
 
 # We don't know what mode to open the file in (text for things like Glove while
-# binary for things like Word2Vec or Dense) we can't use the `@file_or_name`
+# binary for things like Word2Vec or Leader) we can't use the `@file_or_name`
 # decorator directly but all the functions we call use that so we can handle
 # all the file formats.
 def read(f: Union[str, TextIO, BinaryIO], file_type: Optional[FileType] = None) -> Tuple[Vocab, Vectors]:
@@ -42,7 +42,7 @@ def read(f: Union[str, TextIO, BinaryIO], file_type: Optional[FileType] = None) 
     - :py:func:`~word_vectors.read.read_glove`
     - :py:func:`~word_vectors.read.read_w2v_text`
     - :py:func:`~word_vectors.read.read_w2v`
-    - :py:func:`~word_vectors.read.read_dense`
+    - :py:func:`~word_vectors.read.read_leader`
 
     Check the documentation of a specific reader to see a description of the file
     format as well as common pre-trained vectors that ship with this format.
@@ -77,8 +77,8 @@ def read(f: Union[str, TextIO, BinaryIO], file_type: Optional[FileType] = None) 
         line_reader = read_w2v_text_lines
     elif file_type is FileType.W2V:
         line_reader = read_w2v_lines
-    elif file_type is FileType.DENSE:
-        line_reader = read_dense_lines
+    elif file_type is FileType.LEADER:
+        line_reader = read_leader_lines
     else:
         raise ValueError(f"Unknown vector format, got: {line_reader}")
     return _read(f, line_reader)
@@ -98,7 +98,7 @@ def read_with_vocab(
     - :py:func:`~word_vectors.read.read_glove_with_vocab`
     - :py:func:`~word_vectors.read.read_w2v_text_with_vocab`
     - :py:func:`~word_vectors.read.read_w2v_with_vocab`
-    - :py:func:`~word_vectors.read.read_dense_with_vocab`
+    - :py:func:`~word_vectors.read.read_leader_with_vocab`
 
     Check the documentation of a specific reader to see a description of the file
     format as well as common pre-trained vectors that ship with this format.
@@ -148,8 +148,8 @@ def read_with_vocab(
         line_reader = read_w2v_text_lines
     elif file_type is FileType.W2V:
         line_reader = read_w2v_lines
-    elif file_type is FileType.DENSE:
-        line_reader = read_dense_lines
+    elif file_type is FileType.LEADER:
+        line_reader = read_leader_lines
     else:
         raise ValueError(f"Unknown vector format, got: {line_reader}")
     if keep_extra:
@@ -258,18 +258,21 @@ def read_w2v_lines(f: Union[str, BinaryIO]) -> Iterator[Tuple[str, np.ndarray]]:
 
 
 @file_or_name(f="rb")
-def read_dense_lines(f: Union[str, BinaryIO]) -> Iterator[Tuple[str, np.ndarray]]:
+def read_leader_lines(f: Union[str, BinaryIO]) -> Iterator[Tuple[str, np.ndarray]]:
     with mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) as m:
-        offset = LONG_SIZE * DENSE_HEADER
-        vocab, dim, max_length = read_dense_header(m[:offset])
-        size = FLOAT_SIZE * dim
-        line_length = max_length + size + INT_SIZE
+        offset = LONG_SIZE * LEADER_HEADER
+        vocab, dim = read_leader_header(m[:offset])
+        vector_size = FLOAT_SIZE * dim
+        start = offset
         for i in range(vocab):
-            start = offset + i * (line_length)
-            line = m[start : start + line_length]
-            token_length = struct.unpack("<I", line[:INT_SIZE])[0]
-            word = line[INT_SIZE : INT_SIZE + token_length].decode("utf-8")
-            vector = np.frombuffer(line[max_length + INT_SIZE :], dtype=np.float32)
+            word_start = start + INT_SIZE
+            token_length = struct.unpack("<I", m[start:word_start])[0]
+            word_end = word_start + token_length
+            word = m[word_start:word_end].decode("utf-8")
+            # vector = np.frombuffer(line[max_length + INT_SIZE :], dtype=np.float32)
+            vector_end = word_end + vector_size
+            vector = np.frombuffer(m[word_end:vector_end], dtype=np.float32)
+            start = vector_end
             yield word, vector
 
 
@@ -530,35 +533,20 @@ def read_w2v_with_vocab(
 
 
 @file_or_name(f="rb")
-def read_dense(f: Union[str, BinaryIO]) -> Tuple[Vocab, Vectors]:
-    """Read vectors from a dense file.
+def read_leader(f: Union[str, BinaryIO]) -> Tuple[Vocab, Vectors]:
+    """Read vectors from a leader file.
 
     This is our fully binary vector format.
 
-    The first line is a header for the dense format and it is a
-    4-tuple. The elements of
-    this tuple are: A magic number, the size of the vocabulary, the
-    size of the vectors, and the length of the longest word in the
-    vocabulary (this refers to the lengths of words when represented
-    as ``utf-8`` bytes rather than as Unicode codepoints). These
-    numbers are represented as little-endian unsigned long longs that
-    have a size of 8 bytes.
+    The first line is a header for the leader format and it is a 3-tuple.
+    The elements of this tuple are: A magic number, the size of the vocabulary,
+    and the size of the vectors. These numbers are represented as little-endian
+    unsigned long longs that have a size of 8 bytes.
 
-    Following the header there are (length, word, vector) tuples. The
-    length is the length of this particular word encoded as a
-    little-endian unsigned integer. The word is stored as ``utf-8``
-    bytes. The trick is that words are padded out to be a consistent
-    length (this length is the length of the longest word in the
-    vocabulary) but we keep track the length of this word to make reading
-    the word from this padded section more efficient. After the word
-    the vector is stored where each element is a little-endian
-    float32 (4 bytes).
-
-    The consistent word lengths lets us calculate the offset to any
-    word quickly without having to iterate over the characters to
-    find the space as in the word2vec binary format. Finding the
-    word at index ``i`` can be done with some offset math.
-    ``offset for i = header length + i * (max length + vector size + INT_SIZE)``
+    Following the header there are (length, word, vector) tuples. The length is
+    the length of this particular word encoded as a little-endian unsigned
+    integer. The word is stored as ``utf-8`` bytes. After the word the vector
+    is stored where each element is a little-endian float32 (4 bytes).
 
     Note:
        In the case of duplicated words in the saved vectors we use the index
@@ -570,19 +558,19 @@ def read_dense(f: Union[str, BinaryIO]) -> Tuple[Vocab, Vectors]:
     Returns:
         The vocab and vectors.
     """
-    return _read(f, read_dense_lines)
+    return _read(f, read_leader_lines)
 
 
 @file_or_name(f="rb")
-def read_dense_with_vocab(
+def read_leader_with_vocab(
     f: Union[str, BinaryIO],
     user_vocab: Vocab,
     initializer: Callable[[int], np.ndarray] = uniform_initializer(0.25),
     keep_extra: bool = False,
 ) -> Tuple[Vocab, Vectors]:
-    """Read vectors from a Dense file subject to user vocabulary constraints.
+    """Read vectors from a Leader file subject to user vocabulary constraints.
 
-    See :py:func:`~word_vectors.read.read_dense` for a description of the file format
+    See :py:func:`~word_vectors.read.read_leader` for a description of the file format
     and common pre-train embeddings that use this format.
 
     When provided a vocabulary this function will not reorder it. If you pass in that
@@ -613,8 +601,8 @@ def read_dense_with_vocab(
         vocab gives the index offset into the vector matrix for some word.
     """
     if keep_extra:
-        return _read_with_vocab_extra(f, read_dense_lines, user_vocab, initializer)
-    return _read_with_vocab(f, read_dense_lines, user_vocab, initializer)
+        return _read_with_vocab_extra(f, read_leader_lines, user_vocab, initializer)
+    return _read_with_vocab(f, read_leader_lines, user_vocab, initializer)
 
 
 @file_or_name(f="rb")
@@ -642,8 +630,8 @@ def sniff(f: Union[str, TextIO], buf_size: int = 1024) -> FileType:
         if is_binary(f):
             if W2V_BIN.match(b):
                 return FileType.W2V
-            if verify_dense(b):
-                return FileType.DENSE
+            if verify_leader(b):
+                return FileType.LEADER
         else:
             if W2V_BIN.match(b):
                 return FileType.W2V_TEXT
@@ -652,20 +640,18 @@ def sniff(f: Union[str, TextIO], buf_size: int = 1024) -> FileType:
     raise ValueError(f"Could not determine file format for {f.name}")
 
 
-def read_dense_header(buf: bytes) -> Tuple[int, int, int]:
-    """Read the header from the dense file.
+def read_leader_header(buf: bytes) -> Tuple[int, int]:
+    """Read the header from the leader file.
 
-    The header for the dense format is a 4-tuple. The elements of
-    this tuple are: A magic number, the size of the vocabulary, the
-    size of the vectors, and the length of the longest word in the
-    vocabulary (this length when represented as ``utf-8`` bytes
-    rather than as Unicode codepoints). These numbers are represented
-    as little-endian unsigned long longs that have a size of 8 bytes.
+    The header for the leader format is a 3-tuple.
+    The elements of this tuple are: A magic number, the size of the vocabulary,
+    and the size of the vectors. These numbers are represented as little-endian
+    unsigned long longs that have a size of 8 bytes.
 
     Note:
         The magic number if used to make sure this is can actual
         file and not just trying to extract word vectors from a
-        random binary file. The Magic Number is ``2283``.
+        random binary file. The Magic Number is ``38941``.
 
     Args:
         buf: The beginning of the file we are reading the header from.
@@ -676,24 +662,24 @@ def read_dense_header(buf: bytes) -> Tuple[int, int, int]:
     Raises:
         ValueError: If the magic number doesn't match.
     """
-    magic, vocab, dim, length = struct.unpack("<QQQQ", buf[: LONG_SIZE * DENSE_HEADER])
-    if magic != DENSE_MAGIC_NUMBER:
-        raise ValueError(f"Magic Number read does not match expected. Expected: `{DENSE_MAGIC_NUMBER}` Got: `{magic}`")
-    return vocab, dim, length
+    magic, vocab, dim = struct.unpack("<QQQ", buf[: LONG_SIZE * LEADER_HEADER])
+    if magic != LEADER_MAGIC_NUMBER:
+        raise ValueError(f"Magic Number read does not match expected. Expected: `{LEADER_MAGIC_NUMBER}` Got: `{magic}`")
+    return vocab, dim
 
 
-def verify_dense(buf: bytes) -> bool:
-    """Check if a file is in the dense format by comparing the magic number.
+def verify_leader(buf: bytes) -> bool:
+    """Check if a file is in the leader format by comparing the magic number.
 
     Args:
         buf: The beginning of the file we are trying to determine if the it
-        is a Dense formatted file.
+        is a Leader formatted file.
 
     Returns:
         True if the magic number matched, False otherwise.
     """
     try:
-        read_dense_header(buf)
+        read_leader_header(buf)
         return True
     except ValueError:
         return False

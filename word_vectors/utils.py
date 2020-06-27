@@ -32,24 +32,6 @@ def find_space(buf: bytes, offset: int) -> Tuple[str, int]:
     return word, i + 1
 
 
-def find_max(words: Iterable[str]) -> int:
-    """Get the max length of words (as bytes).
-
-    Note:
-        This finds the length in (``utf-8``) bytes, this could be different than the max length
-        of the word as returned by ``len`` because ``len`` is run on the string objects which
-        might encode to more bytes (in ``utf-8``) for example an emoji is often a single character
-        but as bytes it could be a few.
-
-    Args:
-        words: The series of words.
-
-    Returns:
-        The length of the longest word.
-    """
-    return max(map(len, map(lambda x: x.encode("utf-8"), words)))
-
-
 @file_or_name(f="rb")
 def is_binary(
     f: Union[str, BinaryIO], block_size: int = 512, ratio: float = 0.30, text_characters: bytes = ASCII_CHARACTERS
@@ -114,20 +96,6 @@ def bookmark(f: IO):
     start = f.tell()
     yield
     f.seek(start)
-
-
-def padded_bytes(word: str, max_len: int) -> bytes:
-    """Pad a word out so the byte representation is max_len.
-
-    Args:
-        word: The word we are padding out and converting to binary
-        max_len: How far to pad the string
-
-    Returns:
-        The word as bytes and extended.
-    """
-    byte_words = word.encode("utf-8")
-    return byte_words + b" " * (max_len - len(byte_words))
 
 
 def to_vocab(words: Iterable[str]) -> Vocab:

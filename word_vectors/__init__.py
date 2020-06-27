@@ -1,6 +1,6 @@
 """Read, Write, and Convert between different word vector serialization formats."""
 
-__version__ = "3.0.0"
+__version__ = "4.0.0"
 
 from typing import Dict, Tuple
 from enum import Enum
@@ -27,8 +27,8 @@ class FileType(Enum):
     #: :py:func:`~word_vectors.read.read_w2v` for a description of the file format and common
     #: pre-trained embeddings that use this format.
     W2V = "w2v"
-    #: Our new Dense file format. See :py:func:`~word_vectors.read.read_dense` for a description of the file format.
-    DENSE = "dense"
+    #: Our new Leader file format. See :py:func:`~word_vectors.read.read_leader` for a description of the file format.
+    LEADER = "leader"
     #: The file format used to distribute FastText vectors, it is just the word2vec text format.
     #: See :py:func:`~word_vectors.read.read_w2v_text` for a description of the file format.
     FASTTEXT = "w2v-text"
@@ -57,13 +57,13 @@ class FileType(Enum):
             return cls.W2V_TEXT
         if value == "w2v":
             return cls.W2V
-        if value == "dense":
-            return cls.DENSE
+        if value == "leader":
+            return cls.LEADER
         if value == "numberbatch":
             return cls.NUMBERBATCH
         if value in ("fasttext", "fast-text", "fast_text"):
             return cls.FASTTEXT
-        return ValueError(f"Unable to understand file type, got: {value}")
+        raise ValueError(f"Unable to understand file type, got: {value}")
 
     def __str__(self) -> str:
         """When calling ``str`` on an enum member output a value suitable for filenames"""
@@ -73,8 +73,8 @@ class FileType(Enum):
 INT_SIZE = 4  #: The size of an int32 in bytes used when reading binary files.
 FLOAT_SIZE = 4  #: The size of a float32 in bytes when reading a binary file.
 LONG_SIZE = 8  #: The size of an int64 in bytes when reading binary files.
-DENSE_HEADER = 4  #: The number of elements in the Dense format header.
-DENSE_MAGIC_NUMBER = 2283  #: A magic number used to identify a Dense format file.
+LEADER_HEADER = 3  #: The number of elements in the Leader format header.
+LEADER_MAGIC_NUMBER = 38941  #: A magic number used to identify a Leader format file.
 
 
 import word_vectors.read as read_module
@@ -89,23 +89,23 @@ from word_vectors.read import (
     read_w2v_with_vocab,
     read_glove,
     read_glove_with_vocab,
-    read_dense,
-    read_dense_with_vocab,
-    verify_dense,
+    read_leader,
+    read_leader_with_vocab,
+    verify_leader,
 )
 from word_vectors.convert import (
     convert,
-    w2v_to_dense,
+    w2v_to_leader,
     w2v_to_glove,
     w2v_to_w2v_text,
+    glove_to_leader,
     glove_to_w2v,
     glove_to_w2v_text,
-    glove_to_dense,
+    w2v_text_to_leader,
     w2v_text_to_w2v,
     w2v_text_to_glove,
-    w2v_text_to_dense,
-    dense_to_glove,
-    dense_to_w2v,
-    dense_to_w2v_text,
+    leader_to_glove,
+    leader_to_w2v,
+    leader_to_w2v_text,
 )
-from word_vectors.write import write, write_w2v, write_w2v_text, write_glove, write_dense
+from word_vectors.write import write, write_w2v, write_w2v_text, write_glove, write_leader

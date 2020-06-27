@@ -6,8 +6,7 @@
     "min_length": 1,
     "max_length": 66,
     "avg_length": 7.860332161992972,
-    "std_length": 3.203134064091588,
-    "percent_pad": 88.09040581516217
+    "std_length": 3.203134064091588
   },
   "counts": {
     "1": 113,

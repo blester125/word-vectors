@@ -2,7 +2,7 @@ import time
 import json
 import argparse
 from word_vectors import FileType
-from word_vectors.read import read_glove, read_w2v_text, read_w2v, read_dense
+from word_vectors.read import read_glove, read_w2v_text, read_w2v, read_leader
 
 
 def main():
@@ -19,8 +19,8 @@ def main():
         reader = read_w2v_text
     elif args.format is FileType.W2V:
         reader = read_w2v
-    elif args.format is FileType.DENSE:
-        reader = read_dense
+    elif args.format is FileType.LEADER:
+        reader = read_leader
     else:
         raise ValueError(f"Unknown file format, got {args.format}")
 

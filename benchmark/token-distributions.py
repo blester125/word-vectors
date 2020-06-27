@@ -10,19 +10,6 @@ from word_vectors import FileType
 from word_vectors.read import read
 
 
-def wasted_bytes(x: CounterType[int]) -> int:
-    longest = max(x)
-    wasted = 0
-    for k, v in x.items():
-        wasted += (longest - k) * v
-    return wasted
-
-
-def total_bytes(x: CounterType[int]) -> int:
-    longest = max(x)
-    return longest * sum(x.values())
-
-
 def mean(x: CounterType[int]) -> float:
     return sum(k * v for k, v in x.items()) / sum(x.values())
 
@@ -63,7 +50,6 @@ def main():
     max_l = max(lengths)
     avg_l = mean(lengths)
     std_l = std(lengths)
-    p_pad = wasted_bytes(lengths) / total_bytes(lengths) * 100
 
     print(f"Vocab size: {vsz}")
     print(f"Vector size: {dsz}")
@@ -71,7 +57,6 @@ def main():
     print(f"Longest token: {max_l}")
     print(f"Average token length: {avg_l}")
     print(f"Std of token length: {std_l}")
-    print(f"Percentage of padding bytes: {p_pad:.4f}%")
 
     embed_name = os.path.splitext(os.path.basename(args.embedding))[0] if args.embed_name is None else args.embed_name
 
@@ -84,7 +69,6 @@ def main():
             "max_length": max_l,
             "avg_length": avg_l,
             "std_length": std_l,
-            "percent_pad": p_pad,
         },
         "counts": {**lengths},
     }

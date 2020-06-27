@@ -1,5 +1,4 @@
 data/glove.840B.300d.glove glove
 data/glove.840B.300d.w2v-text w2v-text
 data/glove.840B.300d.w2v w2v
-data/glove.840B.300d.dense dense
 data/glove.840B.300d.leader leader

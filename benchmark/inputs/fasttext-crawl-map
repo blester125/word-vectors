@@ -1,5 +1,4 @@
 data/crawl-300d-2M.vec w2v-text
 data/crawl-300d-2M.glove glove
 data/crawl-300d-2M.w2v w2v
-data/crawl-300d-2M.dense dense
 data/crawl-300d-2M.leader leader

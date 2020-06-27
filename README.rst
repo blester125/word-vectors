@@ -123,41 +123,30 @@ the `GoogleNews`_ vectors.
 .. _(Mikolov, et. al., 2013): https://papers.nips.cc/paper/5021-distributed-representations-of-words-and-phrases-and-their-compositionality
 .. _GoogleNews: https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit
 
-Dense
------
+Leader
+------
 
 This is our fully binary vector format.
 
-The first line is a header for the dense format and it is a
-4-tuple. The elements of
-this tuple are: A magic number, the size of the vocabulary, the
-size of the vectors, and the length of the longest word in the
-vocabulary (this refers to the lengths of words when represented
-as ``utf-8`` bytes rather than as Unicode codepoints). These
-numbers are represented as little-endian unsigned long longs that
-have a size of 8 bytes.
+The first line is a header for the leader format and it is a 3-tuple.
+The elements of this tuple are: A magic number, the size of the vocabulary,
+and the size of the vectors. These numbers are represented as little-endian
+unsigned long longs that have a size of 8 bytes.
 
-Following the header there are (length, word, vector) tuples. The
-length is the length of this particular word encoded as a
-little-endian unsigned integer. The word is stored as ``utf-8``
-bytes. The trick is that words are padded out to be a consistent
-length (this length is the length of the longest word in the
-vocabulary) but we keep track the length of this word to make reading
-the word from this padded section more efficient. After the word
-the vector is stored where each element is a little-endian
-float32 (4 bytes).
+Following the header there are (length, word, vector) tuples. The length is
+the length of this particular word encoded as a little-endian unsigned
+integer. The word is stored as ``utf-8`` bytes. After the word the vector
+is stored where each element is a little-endian float32 (4 bytes).
 
-The consistent word lengths lets us calculate the offset to any
-word quickly without having to iterate over the characters to
-find the space as in the word2vec binary format. Finding the
-word at index ``i`` can be done with some offset math.
-``offset for i = header length + i * (max length + vector size + INT_SIZE)``
+By tracking the length of the word we can jump directly to the start of them
+vector instead of having to iterate through the word like we do in the word2vec
+binary format.
 
 .. NOTE::
 
     The magic number if used to make sure this is can actual
     file and not just trying to extract word vectors from a
-    random binary file. The Magic Number is ``2283``.
+    random binary file. The Magic Number is ``38941``.
 
 .. NOTE::
 
@@ -166,7 +155,7 @@ word at index ``i`` can be done with some offset math.
     size or the vector size. Unlink the Word2Vec format the
     header is not text so a simple ``head -n 1 embedding-file``
     will **NOT** work. Instead you can use
-    ``od -l --endian=little -N 32 embedding-file`` and you should
+    ``od -l --endian=little -N 24 embedding-file`` and you should
     see the magic number, the vocabulary size, the vector size, and
     the max length of the tokens (as ``utf-8`` bytes).
 
@@ -305,9 +294,9 @@ API is very simply just pass in the file name.
     >>> from word_vectors import FileType
     >>> # Read using the binary Word2Vec format
     ... v, wv = read("/path/to/vector-file", FileType.W2V)
-    >>> from word_vectors.read import read_dense
-    >>> # Read dense formatted vectors
-    ... v, wv = read_dense("/path/to/dense-vector-file")
+    >>> from word_vectors.read import read_leader
+    >>> # Read leader formatted vectors
+    ... v, wv = read_leader("/path/to/leader-vector-file")
 
 
 You can also use the ``_with_vocab`` version of all the reader function to only read a subsection of the
@@ -323,7 +312,7 @@ vocabulary back with the extra words appearing at the end.
 .. code:: python
 
     >>> from word_vectors import read, read_with_vocab
-    >>> v, wv = read("dense.bin")
+    >>> v, wv = read("leader.bin")
     >>> v
     {'0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, '11': 11, '12': 12, '13': 13, '14': 14}
     >>> wv[v["4"]]
@@ -337,7 +326,7 @@ vocabulary back with the extra words appearing at the end.
     >>> user_vocab = {k: i for i, k in enumerate(k for k, x in v.items() if x % 2 == 0)}
     >>> user_vocab
     {'0': 0, '2': 1, '4': 2, '6': 3, '8': 4, '10': 5, '12': 6, '14': 7}
-    >>> v, wv = read_with_vocab("dense.bin", user_vocab)
+    >>> v, wv = read_with_vocab("leader.bin", user_vocab)
     >>> v
     {'0': 0, '2': 1, '4': 2, '6': 3, '8': 4, '10': 5, '12': 6, '14': 7}
     >>> wv[v["4"]]
@@ -345,7 +334,7 @@ vocabulary back with the extra words appearing at the end.
            4., 4., 4.], dtype=float32)
     >>> wv.shape
     (8, 20)
-    >>> v, wv = read_with_vocab("dense.bin", user_vocab, keep_extra=True)
+    >>> v, wv = read_with_vocab("leader.bin", user_vocab, keep_extra=True)
     >>> v
     {'0': 0, '2': 1, '4': 2, '6': 3, '8': 4, '10': 5, '12': 6, '14': 7, '1': 8, '3': 9, '5': 10, '7': 11, '9': 12, '11': 13, '13': 14}
     >>> wv[v["4"]]
@@ -370,7 +359,7 @@ Writing similarly has a main ``word_vectors.write.write`` function that dispatch
     >>> v, wv = read("/path/to/vectors")
     >>> from word_vectors import FileType
     >>> from word_vectors.write import write
-    >>> write("/path/to/vectors.dense", v, wv, FileType.DENSE)
+    >>> write("/path/to/vectors.leader", v, wv, FileType.LEADER)
     >>> write("/path/to/vectors.w2v", v, wv, FileType.W2V)
     >>> write_glove("/path/to/vectors.glove", v, wv)
 

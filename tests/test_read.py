@@ -6,18 +6,18 @@ from operator import itemgetter
 from pathlib import Path
 import pytest
 import numpy as np
-from word_vectors import FileType, DENSE_MAGIC_NUMBER
+from word_vectors import FileType, LEADER_MAGIC_NUMBER
 from word_vectors.read import (
     read,
     read_with_vocab,
     read_glove,
     read_w2v,
     read_w2v_text,
-    read_dense,
+    read_leader,
     sniff,
     GLOVE_BIN,
-    read_dense_header,
-    verify_dense,
+    read_leader_header,
+    verify_leader,
 )
 from utils import (
     vocab,
@@ -26,13 +26,13 @@ from utils import (
     GLOVE,
     W2V,
     W2V_TEXT,
-    DENSE,
+    LEADER,
     dupped_vectors as dupped_vects,
     dupped_vocab as dupped_vs,
     GLOVE_DUPPED,
     W2V_DUPPED,
     W2V_TEXT_DUPPED,
-    DENSE_DUPPED,
+    LEADER_DUPPED,
     rand_str,
 )
 
@@ -59,19 +59,19 @@ def dupped_vectors():
 
 @pytest.fixture
 def correct_header():
-    vsz, dsz, mxlen = np.random.randint(0, 20, size=(3,))
-    header = struct.pack("<QQQQ", DENSE_MAGIC_NUMBER, vsz, dsz, mxlen)
-    return header, vsz, dsz, mxlen
+    vsz, dsz = np.random.randint(0, 20, size=(2,))
+    header = struct.pack("<QQQ", LEADER_MAGIC_NUMBER, vsz, dsz)
+    return header, vsz, dsz
 
 
 @pytest.fixture
 def wrong_header():
-    vsz, dsz, mxlen = np.random.randint(0, 20, size=(3,))
-    magic = DENSE_MAGIC_NUMBER
-    while magic == DENSE_MAGIC_NUMBER:
+    vsz, dsz = np.random.randint(0, 20, size=(2))
+    magic = LEADER_MAGIC_NUMBER
+    while magic == LEADER_MAGIC_NUMBER:
         magic = np.random.randint(10, 100000)
-    header = struct.pack("<QQQQ", magic, vsz, dsz, mxlen)
-    return header, vsz, dsz, mxlen
+    header = struct.pack("<QQQ", magic, vsz, dsz)
+    return header, vsz, dsz
 
 
 def sample(vocab, vectors, p):
@@ -114,60 +114,58 @@ def split(vocab, vectors, p):
     return new_vocab, np.vstack(new_vectors), extra_vocab, np.vstack(extra_vectors)
 
 
-def test_read_dense_header(correct_header):
-    header, gvsz, gdsz, gmxlen = correct_header
-    vsz, dsz, mxlen = read_dense_header(header)
+def test_read_leader_header(correct_header):
+    header, gvsz, gdsz = correct_header
+    vsz, dsz = read_leader_header(header)
     assert vsz == gvsz
     assert dsz == gdsz
-    assert mxlen == gmxlen
 
 
-def test_read_dense_header_errors(wrong_header):
+def test_read_leader_header_errors(wrong_header):
     header, *_ = wrong_header
     with pytest.raises(ValueError):
-        read_dense_header(header)
+        read_leader_header(header)
 
 
-def test_verify_dense_correct(correct_header):
+def test_verify_leader_correct(correct_header):
     header, *_ = correct_header
-    assert verify_dense(header)
+    assert verify_leader(header)
 
 
-def test_verify_dense_wrong(wrong_header):
+def test_verify_leader_wrong(wrong_header):
     header, *_ = wrong_header
-    assert not verify_dense(header)
+    assert not verify_leader(header)
 
 
-def test_read_dense_header_longer(correct_header):
-    header, gvsz, gdsz, gmxlen = correct_header
+def test_read_leader_header_longer(correct_header):
+    header, gvsz, gdsz = correct_header
     header = header + rand_str().encode("utf-8")
-    vsz, dsz, mxlen = read_dense_header(header)
+    vsz, dsz = read_leader_header(header)
     assert vsz == gvsz
     assert dsz == gdsz
-    assert mxlen == gmxlen
 
 
-def test_read_dense_header_errors_longer(wrong_header):
+def test_read_leader_header_errors_longer(wrong_header):
     header, *_ = wrong_header
     header = header + rand_str().encode("utf-8")
     with pytest.raises(ValueError):
-        read_dense_header(header)
+        read_leader_header(header)
 
 
-def test_verify_dense_correct_longer(correct_header):
+def test_verify_leader_correct_longer(correct_header):
     header, *_ = correct_header
     header = header + rand_str().encode("utf-8")
-    assert verify_dense(header)
+    assert verify_leader(header)
 
 
-def test_verify_dense_wrong_longer(wrong_header):
+def test_verify_leader_wrong_longer(wrong_header):
     header, *_ = wrong_header
     header = header + rand_str().encode("utf-8")
-    assert not verify_dense(header)
+    assert not verify_leader(header)
 
 
 def test_read(gold_vocab, gold_vectors):
-    data = random.choice([GLOVE, W2V, DENSE, W2V_TEXT])
+    data = random.choice([GLOVE, W2V, LEADER, W2V_TEXT])
     w, wv = read(str(DATA / data))
     assert w == gold_vocab
     np.testing.assert_allclose(wv, gold_vectors)
@@ -175,7 +173,7 @@ def test_read(gold_vocab, gold_vectors):
 
 def test_read_with_vocab(gold_vocab, gold_vectors):
     gold_vocab, gold_vectors = sample(gold_vocab, gold_vectors, 0.5)
-    data = random.choice([GLOVE, W2V, DENSE, W2V_TEXT])
+    data = random.choice([GLOVE, W2V, LEADER, W2V_TEXT])
     v, wv = read_with_vocab(str(DATA / data), gold_vocab)
     assert v == gold_vocab
     np.testing.assert_allclose(wv, gold_vectors)
@@ -190,14 +188,14 @@ def test_read_with_vocab_extra(gold_vocab, gold_vectors):
     ):
         gold_vocab[word] = idx
 
-    data = random.choice([GLOVE, W2V, DENSE, W2V_TEXT])
+    data = random.choice([GLOVE, W2V, LEADER, W2V_TEXT])
     v, wv = read_with_vocab(str(DATA / data), user_vocab, keep_extra=True)
     assert v == gold_vocab
     np.testing.assert_allclose(wv, gold_vectors)
 
 
 def test_read_pathlib(gold_vocab, gold_vectors):
-    data = random.choice([GLOVE, W2V, DENSE, W2V_TEXT])
+    data = random.choice([GLOVE, W2V, LEADER, W2V_TEXT])
     v, wv = read(DATA / data)
     assert v == gold_vocab
     np.testing.assert_allclose(wv, gold_vectors)
@@ -205,7 +203,7 @@ def test_read_pathlib(gold_vocab, gold_vectors):
 
 def test_read_with_vocab_pathlib(gold_vocab, gold_vectors):
     gold_vocab, gold_vectors = sample(gold_vocab, gold_vectors, 0.5)
-    data = random.choice([GLOVE, W2V, DENSE, W2V_TEXT])
+    data = random.choice([GLOVE, W2V, LEADER, W2V_TEXT])
     v, wv = read_with_vocab(DATA / data, gold_vocab)
     assert v == gold_vocab
     np.testing.assert_allclose(wv, gold_vectors)
@@ -220,14 +218,14 @@ def test_read_with_vocab_extra_pathlib(gold_vocab, gold_vectors):
     ):
         gold_vocab[word] = idx
 
-    data = random.choice([GLOVE, W2V, DENSE, W2V_TEXT])
+    data = random.choice([GLOVE, W2V, LEADER, W2V_TEXT])
     v, wv = read_with_vocab(DATA / data, user_vocab, keep_extra=True)
     assert v == gold_vocab
     np.testing.assert_allclose(wv, gold_vectors)
 
 
 def test_read_opened(gold_vocab, gold_vectors):
-    data = random.choice([GLOVE, W2V, DENSE, W2V_TEXT])
+    data = random.choice([GLOVE, W2V, LEADER, W2V_TEXT])
     mode = "r" if data == GLOVE or data == W2V_TEXT else "rb"
     w, wv = read(open(DATA / data, mode))
     assert w == gold_vocab
@@ -236,7 +234,7 @@ def test_read_opened(gold_vocab, gold_vectors):
 
 def test_read_with_vocab_opened(gold_vocab, gold_vectors):
     gold_vocab, gold_vectors = sample(gold_vocab, gold_vectors, 0.5)
-    data = random.choice([GLOVE, W2V, DENSE, W2V_TEXT])
+    data = random.choice([GLOVE, W2V, LEADER, W2V_TEXT])
     mode = "r" if data in (GLOVE, W2V_TEXT) else "rb"
     v, wv = read_with_vocab(open(DATA / data, mode), gold_vocab)
     assert v == gold_vocab
@@ -252,7 +250,7 @@ def test_read_with_vocab_extra_opened(gold_vocab, gold_vectors):
     ):
         gold_vocab[word] = idx
 
-    data = random.choice([GLOVE, W2V, DENSE, W2V_TEXT])
+    data = random.choice([GLOVE, W2V, LEADER, W2V_TEXT])
     mode = "r" if data in (GLOVE, W2V_TEXT) else "rb"
     v, wv = read_with_vocab(open(DATA / data, mode), user_vocab, keep_extra=True)
     assert v == gold_vocab
@@ -260,14 +258,14 @@ def test_read_with_vocab_extra_opened(gold_vocab, gold_vectors):
 
 
 def test_read_dupped(dupped_vocab, dupped_vectors):
-    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, DENSE_DUPPED])
+    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, LEADER_DUPPED])
     w, wv = read(str(DATA / data))
     assert w == dupped_vocab
     np.testing.assert_allclose(wv, dupped_vectors)
 
 
 def test_read_dupped_with_vocab(dupped_vocab, dupped_vectors):
-    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, DENSE_DUPPED])
+    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, LEADER_DUPPED])
     gold_vocab, gold_vectors = sample(dupped_vocab, dupped_vectors, 0.5)
     w, wv = read_with_vocab(str(DATA / data), gold_vocab)
     assert w == gold_vocab
@@ -275,7 +273,7 @@ def test_read_dupped_with_vocab(dupped_vocab, dupped_vectors):
 
 
 def test_read_dupped_with_vocab_with_extra(dupped_vocab, dupped_vectors):
-    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, DENSE_DUPPED])
+    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, LEADER_DUPPED])
     user_vocab, user_vectors, extra_vocab, extra_vectors = split(dupped_vocab, dupped_vectors, 0.5)
     gold_vocab = {}
     gold_vectors = np.concatenate([user_vectors, extra_vectors], axis=0)
@@ -290,14 +288,14 @@ def test_read_dupped_with_vocab_with_extra(dupped_vocab, dupped_vectors):
 
 
 def test_read_dupped_pathlib(dupped_vocab, dupped_vectors):
-    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, DENSE_DUPPED])
+    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, LEADER_DUPPED])
     w, wv = read(DATA / data)
     assert w == dupped_vocab
     np.testing.assert_allclose(wv, dupped_vectors)
 
 
 def test_read_dupped_with_vocab_pathlib(dupped_vocab, dupped_vectors):
-    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, DENSE_DUPPED])
+    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, LEADER_DUPPED])
     gold_vocab, gold_vectors = sample(dupped_vocab, dupped_vectors, 0.5)
     w, wv = read_with_vocab(DATA / data, gold_vocab)
     assert w == gold_vocab
@@ -305,7 +303,7 @@ def test_read_dupped_with_vocab_pathlib(dupped_vocab, dupped_vectors):
 
 
 def test_read_dupped_with_vocab_with_extra_pathlib(dupped_vocab, dupped_vectors):
-    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, DENSE_DUPPED])
+    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, LEADER_DUPPED])
     user_vocab, user_vectors, extra_vocab, extra_vectors = split(dupped_vocab, dupped_vectors, 0.5)
     gold_vocab = {}
     gold_vectors = np.concatenate([user_vectors, extra_vectors], axis=0)
@@ -320,7 +318,7 @@ def test_read_dupped_with_vocab_with_extra_pathlib(dupped_vocab, dupped_vectors)
 
 
 def test_read_dupped_opened(dupped_vocab, dupped_vectors):
-    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, DENSE_DUPPED])
+    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, LEADER_DUPPED])
     mode = "r" if data == GLOVE_DUPPED else "rb"
     w, wv = read(open(DATA / data, mode))
     assert w == dupped_vocab
@@ -328,7 +326,7 @@ def test_read_dupped_opened(dupped_vocab, dupped_vectors):
 
 
 def test_read_dupped_with_vocab_opened(dupped_vocab, dupped_vectors):
-    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, DENSE_DUPPED])
+    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, LEADER_DUPPED])
     mode = "r" if data == GLOVE_DUPPED else "rb"
     gold_vocab, gold_vectors = sample(dupped_vocab, dupped_vectors, 0.5)
     w, wv = read_with_vocab(open(DATA / data, mode), gold_vocab)
@@ -337,7 +335,7 @@ def test_read_dupped_with_vocab_opened(dupped_vocab, dupped_vectors):
 
 
 def test_read_dupped_with_vocab_with_extra_opened(dupped_vocab, dupped_vectors):
-    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, DENSE_DUPPED])
+    data = random.choice([GLOVE_DUPPED, W2V_DUPPED, LEADER_DUPPED])
     mode = "r" if data == GLOVE_DUPPED else "rb"
     user_vocab, user_vectors, extra_vocab, extra_vectors = split(dupped_vocab, dupped_vectors, 0.5)
     gold_vocab = {}
@@ -466,40 +464,40 @@ def test_read_w2v_text_dupped_opened(dupped_vocab, dupped_vectors):
     np.testing.assert_allclose(wv, dupped_vectors)
 
 
-def test_read_dense(gold_vocab, gold_vectors):
-    w, wv = read_dense(str(DATA / DENSE))
+def test_read_leader(gold_vocab, gold_vectors):
+    w, wv = read_leader(str(DATA / LEADER))
     assert w == gold_vocab
     np.testing.assert_allclose(wv, gold_vectors)
 
 
-def test_read_dense_pathlib(gold_vocab, gold_vectors):
-    w, wv = read_dense(DATA / DENSE)
+def test_read_leader_pathlib(gold_vocab, gold_vectors):
+    w, wv = read_leader(DATA / LEADER)
     assert w == gold_vocab
     np.testing.assert_allclose(wv, gold_vectors)
 
 
-def test_read_dense_opened(gold_vocab, gold_vectors):
-    with open(DATA / DENSE, "rb") as f:
-        w, wv = read_dense(f)
+def test_read_leader_opened(gold_vocab, gold_vectors):
+    with open(DATA / LEADER, "rb") as f:
+        w, wv = read_leader(f)
     assert w == gold_vocab
     np.testing.assert_allclose(wv, gold_vectors)
 
 
-def test_read_dense_dupped(dupped_vocab, dupped_vectors):
-    w, wv = read_dense(str(DATA / DENSE_DUPPED))
+def test_read_leader_dupped(dupped_vocab, dupped_vectors):
+    w, wv = read_leader(str(DATA / LEADER_DUPPED))
     assert w == dupped_vocab
     np.testing.assert_allclose(wv, dupped_vectors)
 
 
-def test_read_dense_dupped_pathlib(dupped_vocab, dupped_vectors):
-    w, wv = read_dense(DATA / DENSE_DUPPED)
+def test_read_leader_dupped_pathlib(dupped_vocab, dupped_vectors):
+    w, wv = read_leader(DATA / LEADER_DUPPED)
     assert w == dupped_vocab
     np.testing.assert_allclose(wv, dupped_vectors)
 
 
-def test_read_dense_dupped_opened(dupped_vocab, dupped_vectors):
-    with open(DATA / DENSE_DUPPED, "rb") as f:
-        w, wv = read_dense(f)
+def test_read_leader_dupped_opened(dupped_vocab, dupped_vectors):
+    with open(DATA / LEADER_DUPPED, "rb") as f:
+        w, wv = read_leader(f)
     assert w == dupped_vocab
     np.testing.assert_allclose(wv, dupped_vectors)
 
@@ -525,6 +523,6 @@ def test_sniff_w2v_text():
     assert x is FileType.W2V_TEXT
 
 
-def test_sniff_dense():
-    x = sniff(DATA / DENSE)
-    assert x is FileType.DENSE
+def test_sniff_leader():
+    x = sniff(DATA / LEADER)
+    assert x is FileType.LEADER

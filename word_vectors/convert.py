@@ -6,21 +6,25 @@ by sniffing the input file with :py:func:`~word_vectors.read.sniff` when not pro
 as well as several convenience function for converting between different pairs of formats.
 """
 
+import logging
 from typing import Union, TextIO, BinaryIO, Optional
 from word_vectors import FileType
 from word_vectors.read import read
 from word_vectors.write import write
-from word_vectors.utils import find_max, create_output_path
+from word_vectors.utils import create_output_path
+
+
+LOGGER = logging.getLogger("word_vectors")
 
 
 # We don't know what mode to open the file in (text for things like Glove while
-# binary for things like Word2Vec or Dense) we can't use the `@file_or_name`
+# binary for things like Word2Vec or Leader) we can't use the `@file_or_name`
 # decorator directly but all the functions we call use that so we can handle
 # all the file formats.
 def convert(
     f: Union[str, TextIO, BinaryIO],
     output: Optional[str] = None,
-    output_file_type: FileType = FileType.DENSE,
+    output_file_type: FileType = FileType.LEADER,
     input_file_type: Optional[FileType] = None,
 ):
     """Convert vectors from one format to another.
@@ -33,43 +37,44 @@ def convert(
             writing out the vectors.
         input_file_type: An explicit vector format to use when reading.
     """
+    LOGGER.info("Reading vectors from %s", f)
     w, wv = read(f, input_file_type)
-    len_ = find_max(w.keys())
     output = create_output_path(f, output_file_type) if output is None else output
-    write(output, w, wv, output_file_type, len_)
+    LOGGER.info("Writing vectors to %s", output)
+    write(output, w, wv, output_file_type)
 
 
-def w2v_to_dense(f: Union[str, BinaryIO], output: Optional[str] = None):
-    """Convert binary Word2Vec formatted vectors to the Dense format.
-
-    Args:
-        f: The file to read from.
-        output: The name for the output file. If not provided we use the
-            input file name with a modified extension.
-    """
-    convert(f, output, FileType.DENSE, FileType.W2V)
-
-
-def glove_to_dense(f: Union[str, TextIO], output: Optional[str] = None):
-    """Convert GloVe formatted vectors to the Dense format.
+def w2v_to_leader(f: Union[str, BinaryIO], output: Optional[str] = None):
+    """Convert binary Word2Vec formatted vectors to the Leader format.
 
     Args:
         f: The file to read from.
         output: The name for the output file. If not provided we use the
             input file name with a modified extension.
     """
-    convert(f, output, FileType.Dense, FileType.GLOVE)
+    convert(f, output, FileType.LEADER, FileType.W2V)
 
 
-def w2v_text_to_dense(f: Union[str, TextIO], output: Optional[str] = None):
-    """Convert text Word2Vec formatted vectors to the Dense format.
+def glove_to_leader(f: Union[str, TextIO], output: Optional[str] = None):
+    """Convert GloVe formatted vectors to the Leader format.
 
     Args:
         f: The file to read from.
         output: The name for the output file. If not provided we use the
             input file name with a modified extension.
     """
-    convert(f, output, FileType.Dense, FileType.W2V_TEXT)
+    convert(f, output, FileType.Leader, FileType.GLOVE)
+
+
+def w2v_text_to_leader(f: Union[str, TextIO], output: Optional[str] = None):
+    """Convert text Word2Vec formatted vectors to the Leader format.
+
+    Args:
+        f: The file to read from.
+        output: The name for the output file. If not provided we use the
+            input file name with a modified extension.
+    """
+    convert(f, output, FileType.Leader, FileType.W2V_TEXT)
 
 
 def w2v_to_w2v_text(f: Union[str, BinaryIO], output: Optional[str] = None):
@@ -138,34 +143,34 @@ def glove_to_w2v_text(f: Union[str, TextIO], output: Optional[str] = None):
     convert(f, output, FileType.W2V_TEXT, FileType.GLOVE)
 
 
-def dense_to_w2v(f: Union[str, BinaryIO], output: Optional[str] = None):
-    """Convert Dense formatted vectors to the binary Word2Vec format.
+def leader_to_w2v(f: Union[str, BinaryIO], output: Optional[str] = None):
+    """Convert Leader formatted vectors to the binary Word2Vec format.
 
     Args:
         f: The file to read from.
         output: The name for the output file. If not provided we use the
             input file name with a modified extension.
     """
-    convert(f, output, FileType.W2V, FileType.DENSE)
+    convert(f, output, FileType.W2V, FileType.LEADER)
 
 
-def dense_to_w2v_text(f: Union[str, BinaryIO], output: Optional[str] = None):
-    """Convert Dense formatted vectors to the text Word2Vec format.
-
-    Args:
-        f: The file to read from.
-        output: The name for the output file. If not provided we use the
-            input file name with a modified extension.
-    """
-    convert(f, output, FileType.W2V_TEXT, FileType.DENSE)
-
-
-def dense_to_glove(f: Union[str, BinaryIO], output: Optional[str] = None):
-    """Convert Dense formatted vectors to the GloVe format.
+def leader_to_w2v_text(f: Union[str, BinaryIO], output: Optional[str] = None):
+    """Convert Leader formatted vectors to the text Word2Vec format.
 
     Args:
         f: The file to read from.
         output: The name for the output file. If not provided we use the
             input file name with a modified extension.
     """
-    covert(f, output, FileType.GLOVE, FileType.DENSE)
+    convert(f, output, FileType.W2V_TEXT, FileType.LEADER)
+
+
+def leader_to_glove(f: Union[str, BinaryIO], output: Optional[str] = None):
+    """Convert Leader formatted vectors to the GloVe format.
+
+    Args:
+        f: The file to read from.
+        output: The name for the output file. If not provided we use the
+            input file name with a modified extension.
+    """
+    convert(f, output, FileType.GLOVE, FileType.LEADER)

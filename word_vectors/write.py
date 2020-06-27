@@ -9,8 +9,8 @@ import struct
 from operator import itemgetter
 from typing import Union, IO, TextIO, BinaryIO, Optional, Iterable
 from file_or_name import file_or_name
-from word_vectors import Vocab, Vectors, FileType, DENSE_MAGIC_NUMBER
-from word_vectors.utils import find_max, padded_bytes, to_vocab
+from word_vectors import Vocab, Vectors, FileType, LEADER_MAGIC_NUMBER
+from word_vectors.utils import to_vocab
 
 
 def write(
@@ -28,14 +28,14 @@ def write(
     - :py:func:`~word_vectors.write.write_glove`
     - :py:func:`~word_vectors.write.write_w2v_text`
     - :py:func:`~word_vectors.write.write_w2v`
-    - :py:func:`~word_vectors.write.write_dense`
+    - :py:func:`~word_vectors.write.write_leader`
 
     Args:
         wf: The file we are writing to.
         vocab: The vocab mapping words -> ints.
         vectors: The vectors as a ``np.ndarray``.
         file_type: The format to use when writing the vectors to disk.
-        max_len: The maximum length of a word in vocab. Only used when writing Dense vectors.
+        max_len: The maximum length of a word in vocab. Only used when writing Leader vectors.
 
     Raises:
         ValueError: If the an unsupported file type is passed
@@ -46,8 +46,8 @@ def write(
         write_w2v(wf, vocab, vectors)
     elif file_type is FileType.W2V_TEXT or file_type is FileType.FASTTEXT or file_type is FileType.NUMBERBATCH:
         write_w2v_text(wf, vocab, vectors)
-    elif file_type is FileType.DENSE:
-        write_dense(wf, vocab, vectors, max_len)
+    elif file_type is FileType.LEADER:
+        write_leader(wf, vocab, vectors)
     else:
         raise ValueError(f"FileType not understood, got: {file_type}")
 
@@ -104,12 +104,10 @@ def write_w2v(wf: Union[str, BinaryIO], vocab: Union[Vocab, Iterable[str]], vect
 
 
 @file_or_name(wf="wb")
-def write_dense(
-    wf: Union[str, BinaryIO], vocab: Union[Vocab, Iterable[str]], vectors: Vectors, max_len: Optional[int] = None
-):
-    """Write vectors to a dense file.
+def write_leader(wf: Union[str, BinaryIO], vocab: Union[Vocab, Iterable[str]], vectors: Vectors):
+    """Write vectors to a leader file.
 
-    See :py:func:`word_vectors.read.read_dense` for a description of the file format.
+    See :py:func:`word_vectors.read.read_leader` for a description of the file format.
 
     Args:
         wf: The file we are writing to.
@@ -118,12 +116,11 @@ def write_dense(
         max_len: The longest length of the words as (``utf-8``) bytes.
     """
     vocab = to_vocab(vocab) if not isinstance(vocab, dict) else vocab
-    max_len = find_max(vocab) if max_len is None else max_len
-    for val in (DENSE_MAGIC_NUMBER, len(vocab), vectors.shape[1], max_len):
+    for val in (LEADER_MAGIC_NUMBER, len(vocab), vectors.shape[1]):
         wf.write(struct.pack("<Q", val))
     for word, idx in sorted(vocab.items(), key=itemgetter(1)):
-        word_len = len(word.encode("utf-8"))
-        word = padded_bytes(word, max_len)
+        word = word.encode("utf-8")
+        word_len = len(word)
         wf.write(struct.pack("<I", word_len))
         wf.write(word)
         wf.write(vectors[idx].tobytes())

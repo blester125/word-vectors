@@ -4,8 +4,8 @@ import string
 import pathlib
 from io import StringIO
 from word_vectors import FileType
-from word_vectors.utils import find_max, is_binary, find_space, bookmark, padded_bytes, to_vocab, create_output_path
-from utils import DATA, GLOVE, W2V, W2V_TEXT, DENSE, rand_str
+from word_vectors.utils import is_binary, find_space, bookmark, to_vocab, create_output_path
+from utils import DATA, GLOVE, W2V, W2V_TEXT, LEADER, rand_str
 
 
 def test_enum_parse():
@@ -15,7 +15,7 @@ def test_enum_parse():
         "w2v_text": FileType.W2V_TEXT,
         "w2v-text": FileType.W2V_TEXT,
         "w2v": FileType.W2V,
-        "dense": FileType.DENSE,
+        "leader": FileType.LEADER,
         "fasttext": FileType.FASTTEXT,
         "fast-text": FileType.FASTTEXT,
         "fast_text": FileType.FASTTEXT,
@@ -25,24 +25,8 @@ def test_enum_parse():
         assert FileType.from_string(s) is t
 
 
-def test_max():
-    words = ["A" * i for i in range(10)]
-    gold_len = 9
-    max_len = find_max(words)
-    assert max_len == gold_len
-
-
-def test_max_bytes():
-    words = ["a", "🙄", "c"]
-    str_max = len(max(words, key=lambda x: len(x)))
-    gold = 4
-    res = find_max(words)
-    assert res == gold
-    assert res > str_max
-
-
 def test_is_binary():
-    file_to_gold = {DATA / GLOVE: False, DATA / W2V: True, DATA / W2V_TEXT: False, DATA / DENSE: True}
+    file_to_gold = {DATA / GLOVE: False, DATA / W2V: True, DATA / W2V_TEXT: False, DATA / LEADER: True}
     for file_name, gold in file_to_gold.items():
         assert is_binary(file_name) == gold
 
@@ -81,25 +65,6 @@ def test_to_vocab():
     random.shuffle(vocab)
     d = {k: i for i, k in enumerate(vocab)}
     assert to_vocab(vocab) == d
-
-
-def test_padded_bytes():
-    len_ = random.randint(5, 11)
-    text = "".join(random.choice(string.ascii_lowercase) for _ in range(len_))
-    len_ = random.randint(len(text), len(text) + 10)
-    res = padded_bytes(text, len_)
-    assert len(res) == len_
-    assert res[: len(text)] == text.encode("utf-8")
-
-
-def test_padded_bytes_longer():
-    len_ = random.randint(5, 11)
-    text = "".join(random.choice(string.ascii_lowercase) for _ in range(len_))
-    len_ -= 1
-    res = padded_bytes(text, len_)
-    assert len(res) == len(text)
-    assert len(res) > len_
-    assert res == text.encode("utf-8")
 
 
 def test_create_output_path():
