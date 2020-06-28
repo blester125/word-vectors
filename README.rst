@@ -36,7 +36,7 @@ problem with this method is that vectors are orthogonal. All none word index ele
 like a dot product between two vectors you will always get zero. Dense vectors, on the other hand, have a fixed size
 (as you add more terms to your vocabulary the vectors stay the same size) and when you take the dot product of two
 vectors you get non-zero values. This can be used for tasks like semantic similarity between different words. For a more
-complete introduction to word vectors and the algorithms used to crate them check out these lectures from
+complete introduction to word vectors and the algorithms used to create them check out these lectures from
 Stanford.
 
  - `Word Vectors`_
