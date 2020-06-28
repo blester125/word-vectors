@@ -25,7 +25,8 @@ To install from the source, clone the github repository and install with pip.
 Local Development
 -----------------
 
-If you want to install the package and run tests install the optional testing dependencies.
+If you want to install the package and run tests install the optional testing dependencies. You can use the ``-e``
+option to install in "editable" mode so that changes you make in the source code will get used without re-installing the package.
 
 .. code:: bash
 
