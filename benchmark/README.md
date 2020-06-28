@@ -3,7 +3,7 @@
 
 We can see from our bench marking that the Leader format if the fastest and that our library is faster then Gensim.
 
-
+```
 Statistically Significant: GloVe 6B w2v vs Leader
 	t: -8.256250993845377
 	p: 3.47772855575113e-05
@@ -129,3 +129,4 @@ Statistically Significant: Google News, word2vec binary, word-vectors vs gensim
 	p: 0.0004993619677095291
 	We reject the null hypothesis, therefore:
 		 "word-vectors is faster than gensim"
+```
