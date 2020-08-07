@@ -18,7 +18,7 @@ To install from the source, clone the github repository and install with pip.
 
 .. code:: bash
 
-    git clone https://github.com/blester125/word-vectors.get
+    git clone https://github.com/blester125/word-vectors.git
     cd word-vectors
     pip install .
 
