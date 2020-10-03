@@ -385,3 +385,17 @@ Conversions also have a general function (``word_vectors.convert.convert``) disp
     >>> # Converting between specific formats
     >>> from word_vectors.convert import w2v_text_to_w2v
     ... w2v_text_to_w2v("/path/to/vectors.w2v-text", output="/path/to/vectors.w2v")
+
+Citation
+========
+
+If you use this library, or this vector format, in your research I would appreciate if you would cite the following:
+
+.. code::
+
+    @article{lester2020leader,
+        title={Leader: Prefixing a Length for Faster Word Vector Serialization},
+        author={Lester, Brian},
+        journal={arXiv preprint arXiv:2009.13699},
+        year={2020}
+    }
