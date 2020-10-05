@@ -391,7 +391,7 @@ Citation
 
 If you use this library, or this vector format, in your research I would appreciate if you would cite the following:
 
-.. code::
+.. code:: BibTeX
 
     @article{lester2020leader,
         title={Leader: Prefixing a Length for Faster Word Vector Serialization},
