@@ -139,6 +139,6 @@ def uniform_initializer(unif: float) -> Callable[[int], np.ndarray]:
     """
 
     def _unif_initializer(vector_size: int) -> np.ndarray:
-        return np.random.rand(-unif, unif, size=(vector_size,))
+        return np.random.uniform(-unif, unif, size=(vector_size,))
 
     return _unif_initializer
